@@ -1,0 +1,15 @@
+[project]
+name = "colcoord"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "observlib",
+]
+
+[project.scripts]
+colcoord = "colcoord:__main__.run"
+
+[tool.uv.sources]
+observlib = { git = "https://github.com/ForgottenBeast/observlib.git", subdirectory = "observlib" }
