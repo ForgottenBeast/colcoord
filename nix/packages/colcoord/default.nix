@@ -20,6 +20,7 @@ let
   };
 
   externalDeps = with pkgs; [
+      mitmproxy
   ];
 in
 (common.pythonSet.mkVirtualEnv common.package_name common.workspace.deps.default).overrideAttrs
