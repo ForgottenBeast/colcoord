@@ -3,17 +3,14 @@ import asyncio
 from observlib import traced
 import uuid
 import json
+from enum import Enum
 
 app = FastAPI()
 node_id = None
 games = {}
 
-@app.on_event("startup")
-@traced(tracer=traced_conf["tracer"])
-async def startup_event():
-    global node_id
-    node_id = uuid.uuid1()
-
+class Game:
+    def __init__
 
 async def send_identity(websocket):
     while True:
@@ -22,6 +19,17 @@ async def send_identity(websocket):
         except WebSocketDisconnect:
             break
         await asyncio.sleep(1)
+
+async def game_janitor():
+    global games
+
+
+@app.on_event("startup")
+@traced(tracer=traced_conf["tracer"])
+async def startup_event():
+    global node_id
+    node_id = uuid.uuid1()
+
 
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
