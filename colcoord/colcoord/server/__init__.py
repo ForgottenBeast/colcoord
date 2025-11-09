@@ -3,14 +3,11 @@ import asyncio
 from observlib import traced
 import uuid
 import json
-from enum import Enum
 
 app = FastAPI()
 node_id = None
 games = {}
 
-class Game:
-    def __init__
 
 async def send_identity(websocket):
     while True:
