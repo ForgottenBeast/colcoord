@@ -25,18 +25,14 @@ mkShell {
   packages =
     with pkgs;
     [
-      python3Packages.bandit
-      (python313Packages.opentelemetry-instrumentation.overrideAttrs (old: {
-        propagatedBuildInputs = old.propagatedBuildInputs ++ [ pkgs.python313Packages.packaging ];
-      })) # for bootstrap
-
       deadnix
-      python313
+      (python3.withPackages (ps: with ps;[ websockets bandit ]))
       pyright
       ruff
       statix
       uv
       vulnix
+      mitmproxy
     ];
   shellHook = ''
     # Undo dependency propagation by nixpkgs.
