@@ -2,7 +2,7 @@ from observlib import configure_telemetry
 import os
 import argparse
 import uvicorn
-from .server import app
+from .server import app, set_config
 
 def run():
     parser = argparse.ArgumentParser()
@@ -51,4 +51,5 @@ def run():
         resource_attrs=attrs,
     )
 
+    set_config({"peers":[]})
     uvicorn.run(app, host = "127.0.0.1", port = args.port)
