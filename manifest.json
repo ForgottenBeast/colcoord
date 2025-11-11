@@ -1,0 +1,18 @@
+{
+  "manifest_version": 3,
+  "name": "Colonist-assistant",
+  "version": "0.0.1",
+
+  "description": "Automatically join games on colonists.io",
+
+  "icons": {
+    "48": "favicon.png"
+  },
+
+  "content_scripts": [
+    {
+      "matches": ["*://*.colonists.io/*"],
+      "js": ["colcoord.js"]
+    }
+  ]
+}
