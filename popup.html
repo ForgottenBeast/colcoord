@@ -1,0 +1,262 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Extension UI — Game modes & Friends</title>
+  <style>
+    :root{
+      --bg:#0f172a; --card:#0b1220; --muted:#9aa7c7; --accent:#7dd3fc;
+      --glass: rgba(255,255,255,0.03);
+      font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+    }
+    html,body{height:100%;margin:0;background:linear-gradient(180deg,#071024 0%, #071824 100%);color:#e6eef8}
+    .container{max-width:760px;margin:20px auto;padding:18px;box-shadow:0 6px 30px rgba(2,6,23,0.6);background:var(--card);border-radius:12px}
+    h2{margin:0 0 8px 0;font-size:16px;color:var(--accent)}
+    .row{display:flex;gap:18px;flex-wrap:wrap}
+    .panel{flex:1;min-width:260px;background:var(--glass);padding:12px;border-radius:10px;border:1px solid rgba(255,255,255,0.03)}
+    ul{list-style:none;padding:8px 6px;margin:6px 0;border-radius:8px;min-height:40px}
+    li.item{display:flex;align-items:center;gap:10px;padding:8px;border-radius:8px;background:linear-gradient(180deg, rgba(255,255,255,0.02), transparent);cursor:grab;user-select:none}
+    li.item:active{cursor:grabbing}
+    .handle{width:26px;height:26px;border-radius:6px;display:inline-grid;place-items:center;font-weight:700;background:rgba(0,0,0,0.25);border:1px solid rgba(255,255,255,0.03)}
+    .label{flex:1}
+    .muted{color:var(--muted);font-size:13px}
+    .controls{display:flex;gap:8px;margin-top:8px}
+    button, input[type="text"]{border-radius:8px;padding:8px 10px;border:1px solid rgba(255,255,255,0.06);background:transparent;color:inherit}
+    input[type="text"]{flex:1}
+    .btn-primary{background:linear-gradient(90deg,#0369a1,#7dd3fc);color:#042;border:none}
+    .small-btn{padding:6px 8px;font-size:13px}
+    .placeholder{opacity:0.5;padding:12px 6px}
+    .drag-over{outline:2px dashed rgba(125,211,252,0.6);border-radius:8px}
+    .remove{background:transparent;border:1px solid rgba(255,255,255,0.04);padding:6px;border-radius:6px}
+    .sr-only{position:absolute;left:-9999px}
+    footer{margin-top:12px;font-size:12px;color:var(--muted)}
+  </style>
+</head>
+<body>
+  <div class="container" role="application" aria-label="Game modes and friends manager">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+      <strong>Extension UI</strong>
+      <small class="muted">drag to reorder • names persist</small>
+    </div>
+
+    <div class="row">
+      <!-- Game modes panel -->
+      <section class="panel" aria-labelledby="modesTitle">
+        <h2 id="modesTitle">Game modes</h2>
+        <p class="muted">Drag the handle to reorder modes. Order is saved locally.</p>
+        <ul id="modesList" aria-live="polite"></ul>
+        <div class="controls">
+          <input id="newModeInput" type="text" placeholder="Add new mode (e.g. Hardcore)" />
+          <button id="addModeBtn" class="btn-primary small-btn">Add</button>
+        </div>
+      </section>
+
+      <!-- Friends panel -->
+      <section class="panel" aria-labelledby="friendsTitle">
+        <h2 id="friendsTitle">Friends</h2>
+        <p class="muted">Add names to your friends list. Remove with the × button.</p>
+        <ul id="friendsList" aria-live="polite"></ul>
+        <div class="controls">
+          <input id="friendInput" type="text" placeholder="Friend name" />
+          <button id="addFriendBtn" class="btn-primary small-btn">Add Friend</button>
+        </div>
+      </section>
+    </div>
+
+    <footer>Tip: this snippet uses HTML5 drag & drop and localStorage.</footer>
+  </div>
+
+  <script>
+    // --- Utilities & persistence keys
+    const MODES_KEY = 'ext_game_modes_v1';
+    const FRIENDS_KEY = 'ext_friends_v1';
+
+    // Default seed data
+    const defaultModes = ['Casual', 'Ranked', 'Arcade', 'Hardcore'];
+    const defaultFriends = ['Alex', 'Sam', 'Riley'];
+
+    // Elements
+    const modesList = document.getElementById('modesList');
+    const friendsList = document.getElementById('friendsList');
+    const newModeInput = document.getElementById('newModeInput');
+    const addModeBtn = document.getElementById('addModeBtn');
+    const friendInput = document.getElementById('friendInput');
+    const addFriendBtn = document.getElementById('addFriendBtn');
+
+    // Load or seed
+    function load(key, seed) {
+      try {
+        const raw = localStorage.getItem(key);
+        if (!raw) return seed.slice();
+        const parsed = JSON.parse(raw);
+        return Array.isArray(parsed) ? parsed : seed.slice();
+      } catch (e) {
+        return seed.slice();
+      }
+    }
+
+    let modes = load(MODES_KEY, defaultModes);
+    let friends = load(FRIENDS_KEY, defaultFriends);
+
+    function save(key, arr) {
+      localStorage.setItem(key, JSON.stringify(arr));
+    }
+
+    // Rendering functions
+    function renderModes() {
+      modesList.innerHTML = '';
+      if (modes.length === 0) {
+        modesList.innerHTML = '<li class="placeholder">No modes — add one</li>';
+        return;
+      }
+      modes.forEach((mode, i) => {
+        const li = document.createElement('li');
+        li.className = 'item';
+        li.setAttribute('draggable', 'true');
+        li.dataset.index = i;
+
+        // drag handle
+        const handle = document.createElement('div');
+        handle.className = 'handle';
+        handle.title = 'Drag to reorder';
+        handle.textContent = '↕';
+
+        const label = document.createElement('div');
+        label.className = 'label';
+        label.textContent = mode;
+
+        const removeBtn = document.createElement('button');
+        removeBtn.className = 'remove small-btn';
+        removeBtn.title = 'Remove mode';
+        removeBtn.innerHTML = '×';
+        removeBtn.addEventListener('click', () => {
+          modes.splice(i, 1);
+          save(MODES_KEY, modes);
+          renderModes();
+        });
+
+        li.appendChild(handle);
+        li.appendChild(label);
+        li.appendChild(removeBtn);
+
+        // drag events
+        li.addEventListener('dragstart', onDragStart);
+        li.addEventListener('dragenter', onDragEnter);
+        li.addEventListener('dragover', onDragOver);
+        li.addEventListener('dragleave', onDragLeave);
+        li.addEventListener('drop', onDrop);
+        li.addEventListener('dragend', onDragEnd);
+
+        modesList.appendChild(li);
+      });
+    }
+
+    function renderFriends() {
+      friendsList.innerHTML = '';
+      if (friends.length === 0) {
+        friendsList.innerHTML = '<li class="placeholder">No friends yet — add someone</li>';
+        return;
+      }
+      friends.forEach((name, i) => {
+        const li = document.createElement('li');
+        li.className = 'item';
+        const label = document.createElement('div');
+        label.className = 'label';
+        label.textContent = name;
+
+        const removeBtn = document.createElement('button');
+        removeBtn.className = 'remove small-btn';
+        removeBtn.title = 'Remove friend';
+        removeBtn.innerHTML = '×';
+        removeBtn.addEventListener('click', () => {
+          friends.splice(i, 1);
+          save(FRIENDS_KEY, friends);
+          renderFriends();
+        });
+
+        li.appendChild(label);
+        li.appendChild(removeBtn);
+        friendsList.appendChild(li);
+      });
+    }
+
+    // --- Drag & Drop logic for modes
+    let dragSrcIndex = null;
+    function onDragStart(e) {
+      this.style.opacity = '0.6';
+      dragSrcIndex = Number(this.dataset.index);
+      e.dataTransfer.effectAllowed = 'move';
+      // required for Firefox — set data
+      e.dataTransfer.setData('text/plain', String(dragSrcIndex));
+    }
+    function onDragOver(e) {
+      e.preventDefault(); // allow drop
+      e.dataTransfer.dropEffect = 'move';
+      return false;
+    }
+    function onDragEnter(e) {
+      if (this !== e.currentTarget) return;
+      this.classList.add('drag-over');
+    }
+    function onDragLeave(e) {
+      this.classList.remove('drag-over');
+    }
+    function onDrop(e) {
+      e.stopPropagation();
+      this.classList.remove('drag-over');
+
+      // Source index might come from dataTransfer or tracked var
+      const src = dragSrcIndex ?? Number(e.dataTransfer.getData('text/plain'));
+      const dst = Number(this.dataset.index);
+      if (isNaN(src) || isNaN(dst) || src === dst) return;
+
+      // move element in array
+      const [item] = modes.splice(src, 1);
+      modes.splice(dst, 0, item);
+
+      save(MODES_KEY, modes);
+      renderModes();
+      return false;
+    }
+    function onDragEnd() {
+      this.style.opacity = '';
+      dragSrcIndex = null;
+      // clear any remaining highlighting
+      document.querySelectorAll('.drag-over').forEach(n => n.classList.remove('drag-over'));
+    }
+
+    // Add handlers
+    addModeBtn.addEventListener('click', () => {
+      const v = newModeInput.value.trim();
+      if (!v) return;
+      modes.push(v);
+      newModeInput.value = '';
+      save(MODES_KEY, modes);
+      renderModes();
+    });
+    newModeInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') addModeBtn.click();
+    });
+
+    addFriendBtn.addEventListener('click', () => {
+      const v = friendInput.value.trim();
+      if (!v) return;
+      friends.push(v);
+      friendInput.value = '';
+      save(FRIENDS_KEY, friends);
+      renderFriends();
+    });
+    friendInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') addFriendBtn.click();
+    });
+
+    // Initial render
+    renderModes();
+    renderFriends();
+
+    // Optional: expose state to window for debug
+    window._extUI = { getModes: () => modes.slice(), getFriends: () => friends.slice() };
+  </script>
+</body>
+</html>
