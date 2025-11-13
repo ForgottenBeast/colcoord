@@ -66,31 +66,27 @@ async function iterateRooms() {
           
           const result = await browser.storage.local.get("lastGameFound");
           const lastgameId = result.lastGameFound || "None";
+        for (const room of matching) {
+            if (room.id === lastgameId) {
+              console.log("Already tried that game:", room.id);
+              continue; // skip to next matching room
+            }
 
-          if (best.id === lastgameId){
-              console.log("already tried that game")
-              break;
+            // Save this room as the last tried
+            await browser.storage.local.set({ lastGameFound: room.id });
+
+            console.log(`Matching room: ${room.id} mode=${room.mode}`, room);
+            const gameUrl = `https://colonist.io/#${room.id}`;
+            console.log(`Opening room: ${gameUrl}`);
+
+            searchActive = false; // stop search after opening one room
+            await browser.tabs.create({ url: gameUrl, active: true });
+
+            break; // stop after opening the first new room
           }
-          else {
-              await browser.storage.local.set({ "lastGameFound":best.id });
-          }
-          
-        
-          console.log(`Top match: room ${best.id} mode=${best.mode}`, best);
-          // You could notify the popup, or open the URL:
-          // browser.runtime.sendMessage({ type: "matchingRooms", value: matching });
-          const gameUrl = `https://colonist.io/#${best.id}`;
-
-          console.log(`Opening top room: ${gameUrl}`);
-          searchActive = false;
-          console.log("stopped search")
-
-          await browser.tabs.create({ url: gameUrl, active: true });
-
         } else {
           console.log("No rooms matching preferred modes");
         }
-
       } catch (err) {
         console.error("Error while iterating rooms:", err);
       }

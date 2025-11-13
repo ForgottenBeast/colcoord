@@ -109,8 +109,6 @@ document.addEventListener("DOMContentLoaded", () => {
     browser.runtime.sendMessage({ type: "stopSearch" });
   });
 
-console.log(`stopbtn: ${stopBtn}`)
-
 });
 
   // Initial render
