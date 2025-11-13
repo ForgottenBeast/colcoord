@@ -1,20 +1,23 @@
 {
-  "manifest_version": 3,
+  "manifest_version": 2,
   "name": "Colonist-assistant",
   "version": "0.0.1",
-
   "description": "Automatically join games on colonists.io",
-
   "icons": {
-    "48": "favicon.png"
+    "48": "icons/favicon.png"
   },
-  "permissions": ["storage", "alarms", "scripting"],
-  "host_permissions": ["*://*.colonists.io/*"],
+  "permissions": ["storage", "alarms", "tabs","*://*.colonists.io/*"],
   "background": {
-    "service_worker": "background.js"
+    "scripts": ["background.js"]
   },
-  "action": {
+  "browser_action": {
     "default_popup": "popup.html",
     "default_title": "Colonist Assistant"
+  },
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "colonist-assistant@example.com",
+      "strict_min_version": "102.0"
+    }
   }
 }
