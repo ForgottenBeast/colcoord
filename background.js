@@ -30,10 +30,14 @@ async function iterateRooms() {
 
         analyzedCount += rooms["rooms"].length;
         console.log(`analyzed ${analyzedCount}`)
-      await browser.storage.local.set({ "gamesCount":analyzedCount });
+        await browser.storage.local.set({ "gamesCount":analyzedCount });
+
+        const result = await browser.storage.local.get("FRIENDS_KEY");
+        const friendsList = result.FRIENDS_KEY || [];
+        console.log(`friends: ${friendsList}`)
         browser.runtime.sendMessage({ type: "updateCount", value: analyzedCount }).catch(() => {
         // Popup not open — ignore.
-      });;
+      });
 
         // Convert preferred mode names into their numeric equivalents
         const prefCodes = prefNames.map(name => MODE_MAP[name]).filter(Boolean);
@@ -45,10 +49,33 @@ async function iterateRooms() {
         const matching = rooms["rooms"]
           .filter(r => r.players.length < r.maxPlayers)
           .filter(r => rank.has(r.mode))
-          .sort((a, b) => rank.get(a.mode) - rank.get(b.mode));
+          .sort((a, b) => {
+            // Check if any friends are in each room
+            const aHasFriend = a.players.some(p => friendsList.includes(p.name));
+            const bHasFriend = b.players.some(p => friendsList.includes(p.name));
+
+            if (aHasFriend && !bHasFriend) return -1; // a first
+            if (!aHasFriend && bHasFriend) return 1;  // b first
+
+            // fallback to mode preference ranking
+            return rank.get(a.mode) - rank.get(b.mode);
+          });
 
         if (matching.length > 0) {
           const best = matching[0];
+          
+          const result = await browser.storage.local.get("lastGameFound");
+          const lastgameId = result.lastGameFound || "None";
+
+          if (best.id === lastgameId){
+              console.log("already tried that game")
+              break;
+          }
+          else {
+              await browser.storage.local.set({ "lastGameFound":best.id });
+          }
+          
+        
           console.log(`Top match: room ${best.id} mode=${best.mode}`, best);
           // You could notify the popup, or open the URL:
           // browser.runtime.sendMessage({ type: "matchingRooms", value: matching });
