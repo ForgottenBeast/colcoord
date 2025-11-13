@@ -21,64 +21,63 @@ async function fetchRooms() {
 
 
 async function iterateRooms() {
-  if (!searchActive) return;
-  try {
-    const [prefNames, rooms] = await Promise.all([
-      getPreferredModes(),
-      fetchRooms()
-    ]);
+  while (searchActive){
+      try {
+        const [prefNames, rooms] = await Promise.all([
+          getPreferredModes(),
+          fetchRooms()
+        ]);
 
-    analyzedCount += rooms["rooms"].length;
-    console.log(`analyzed ${analyzedCount}`)
-  await browser.storage.local.set({ "gamesCount":analyzedCount });
-    browser.runtime.sendMessage({ type: "updateCount", value: analyzedCount }).catch(() => {
-    // Popup not open — ignore.
-  });;
+        analyzedCount += rooms["rooms"].length;
+        console.log(`analyzed ${analyzedCount}`)
+      await browser.storage.local.set({ "gamesCount":analyzedCount });
+        browser.runtime.sendMessage({ type: "updateCount", value: analyzedCount }).catch(() => {
+        // Popup not open — ignore.
+      });;
 
-    // Convert preferred mode names into their numeric equivalents
-    const prefCodes = prefNames.map(name => MODE_MAP[name]).filter(Boolean);
+        // Convert preferred mode names into their numeric equivalents
+        const prefCodes = prefNames.map(name => MODE_MAP[name]).filter(Boolean);
 
-    // Rank map: numeric code → preference rank (lower = better)
-    const rank = new Map(prefCodes.map((code, i) => [code, i]));
+        // Rank map: numeric code → preference rank (lower = better)
+        const rank = new Map(prefCodes.map((code, i) => [code, i]));
 
-    // Filter and sort by preference order
-    const matching = rooms["rooms"]
-      .filter(r => r.players.length < r.maxPlayers)
-      .filter(r => rank.has(r.mode))
-      .sort((a, b) => rank.get(a.mode) - rank.get(b.mode));
+        // Filter and sort by preference order
+        const matching = rooms["rooms"]
+          .filter(r => r.players.length < r.maxPlayers)
+          .filter(r => rank.has(r.mode))
+          .sort((a, b) => rank.get(a.mode) - rank.get(b.mode));
 
-    if (matching.length > 0) {
-      const best = matching[0];
-      console.log(`Top match: room ${best.id} mode=${best.mode}`, best);
-      // You could notify the popup, or open the URL:
-      // browser.runtime.sendMessage({ type: "matchingRooms", value: matching });
-      const gameUrl = `https://colonist.io/#${best.id}`;
+        if (matching.length > 0) {
+          const best = matching[0];
+          console.log(`Top match: room ${best.id} mode=${best.mode}`, best);
+          // You could notify the popup, or open the URL:
+          // browser.runtime.sendMessage({ type: "matchingRooms", value: matching });
+          const gameUrl = `https://colonist.io/#${best.id}`;
 
-      console.log(`Opening top room: ${gameUrl}`);
-      searchActive = false;
-      console.log("stopped search")
+          console.log(`Opening top room: ${gameUrl}`);
+          searchActive = false;
+          console.log("stopped search")
 
-      await browser.tabs.create({ url: gameUrl, active: true });
+          await browser.tabs.create({ url: gameUrl, active: true });
 
-    } else {
-      console.log("No rooms matching preferred modes");
-    }
+        } else {
+          console.log("No rooms matching preferred modes");
+        }
 
-  } catch (err) {
-    console.error("Error while iterating rooms:", err);
+      } catch (err) {
+        console.error("Error while iterating rooms:", err);
+      }
+
+      await new Promise(r => setTimeout(r, 1000)); // pause between iterations
   }
-
-  if (searchActive) setTimeout(iterateRooms, 2000);
 }
 
 
 browser.runtime.onMessage.addListener((msg, sender) => {
-  if (msg.type === "startSearch") {
-    if (!searchActive) {
-      searchActive = true;
-      iterateRooms();
-    }
-  } else if (msg.type === "stopSearch") {
+  if (msg.type === "startSearch" && !searchActive) {
+    searchActive = true;
+    iterateRooms();
+  } else if (msg.type === "stopSearch" && searchActive) {
     searchActive = false;
     analyzedCount = 0
   }

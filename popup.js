@@ -80,20 +80,6 @@
     render();
   };
 
-  // --- Toolbar logic ---
-  const startBtn = document.getElementById('startBtn');
-  const stopBtn = document.getElementById('stopBtn');
-
-  startBtn.addEventListener('click', () => {
-    console.log('Search started');
-    browser.runtime.sendMessage({ type: "startSearch" });
-  });
-
-  stopBtn.addEventListener('click', () => {
-    console.log('Search stopped');
-    browser.runtime.sendMessage({ type: "stopSearch" });
-  });
-
 async function updateFromStorage() {
   const result = await browser.storage.local.get("gamesCount");
   const analyzedCount = result.gamesCount || 0;  // fallback to 0
@@ -108,9 +94,24 @@ browser.runtime.onMessage.addListener((msg) => {
   }
 });
 
-document.addEventListener("DOMContentLoaded", updateFromStorage);
+document.addEventListener("DOMContentLoaded", () => {
+  updateFromStorage()
+  const startBtn = document.getElementById('startBtn');
+  const stopBtn = document.getElementById('stopBtn');
+
+  startBtn.addEventListener('click', () => {
+    console.log('Search started');
+    browser.runtime.sendMessage({ type: "startSearch" });
+  });
+
+  stopBtn.addEventListener('click', () => {
+    console.log('Search stopped');
+    browser.runtime.sendMessage({ type: "stopSearch" });
+  });
+
+console.log(`stopbtn: ${stopBtn}`)
+
+});
 
   // Initial render
   render();
-  stopBtn.disabled = true;
-
