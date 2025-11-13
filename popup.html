@@ -13,7 +13,7 @@
     margin:0; padding:16px;
     background:var(--bg); color:#e6eef8;
     display:flex; flex-direction:column; gap:16px;
-    width:320px; /* typical extension popup width */
+    width:320px; /* extension popup typical width */
   }
   section {
     background:var(--card);
@@ -70,6 +70,30 @@
     display:flex;
     margin-top:8px;
   }
+  /* --- Bottom toolbar --- */
+  .toolbar {
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    background:var(--card);
+    border-radius:10px;
+    padding:10px;
+    box-shadow:0 2px 10px rgba(0,0,0,0.3);
+    margin-top:auto;
+  }
+  .toolbar button {
+    flex:1;
+    margin:0 4px;
+    padding:8px 6px;
+  }
+  .counter {
+    min-width:60px;
+    text-align:center;
+    background:rgba(255,255,255,0.05);
+    padding:6px 8px;
+    border-radius:6px;
+    font-weight:bold;
+  }
 </style>
 </head>
 <body>
@@ -92,9 +116,16 @@
     </div>
   </section>
 
+  <!-- Bottom toolbar -->
+  <div class="toolbar">
+    <button id="startBtn">Start</button>
+    <div class="counter" id="gamesCount">0</div>
+    <button id="stopBtn">Stop</button>
+  </div>
+
 <script>
-  const MODES_KEY = 'ext_game_modes_v2';
-  const FRIENDS_KEY = 'ext_friends_v2';
+  const MODES_KEY = 'ext_game_modes_v3';
+  const FRIENDS_KEY = 'ext_friends_v3';
 
   const modesList = document.getElementById('modesList');
   const friendsList = document.getElementById('friendsList');
@@ -102,9 +133,11 @@
   const addModeBtn = document.getElementById('addModeBtn');
   const friendInput = document.getElementById('friendInput');
   const addFriendBtn = document.getElementById('addFriendBtn');
+  const gamesCountEl = document.getElementById('gamesCount');
 
-  let modes = JSON.parse(localStorage.getItem(MODES_KEY) || '["Casual","Ranked","Arcade"]');
-  let friends = JSON.parse(localStorage.getItem(FRIENDS_KEY) || '["Alex","Sam"]');
+  let modes = JSON.parse(localStorage.getItem(MODES_KEY) || '["Sf + C&K 4P","Sf + C&K 6P","Cities & Knights 4P","Cities & Knights 5-6P"]');
+  let friends = JSON.parse(localStorage.getItem(FRIENDS_KEY) || '[]');
+  let gamesAnalyzed = 0;
 
   function save(key, arr){ localStorage.setItem(key, JSON.stringify(arr)); }
 
@@ -173,7 +206,31 @@
     render();
   };
 
+  // --- Toolbar logic ---
+  const startBtn = document.getElementById('startBtn');
+  const stopBtn = document.getElementById('stopBtn');
+
+  startBtn.addEventListener('click', () => {
+    startBtn.disabled = true;
+    stopBtn.disabled = false;
+    console.log('Search started');
+  });
+
+  stopBtn.addEventListener('click', () => {
+    startBtn.disabled = false;
+    stopBtn.disabled = true;
+    console.log('Search stopped');
+  });
+
+  // Expose a simple API to increment counter
+  window.incrementGamesCount = function() {
+    gamesAnalyzed++;
+    gamesCountEl.textContent = gamesAnalyzed;
+  };
+
+  // Initial render
   render();
+  stopBtn.disabled = true;
 </script>
 </body>
 </html>
