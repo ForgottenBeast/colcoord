@@ -8,11 +8,13 @@
   "icons": {
     "48": "favicon.png"
   },
-
-  "content_scripts": [
-    {
-      "matches": ["*://*.colonists.io/*"],
-      "js": ["colcoord.js"]
-    }
-  ]
+  "permissions": ["storage", "alarms", "scripting"],
+  "host_permissions": ["*://*.colonists.io/*"],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Colonist Assistant"
+  }
 }
