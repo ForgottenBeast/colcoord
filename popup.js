@@ -85,22 +85,31 @@
   const stopBtn = document.getElementById('stopBtn');
 
   startBtn.addEventListener('click', () => {
-    startBtn.disabled = true;
-    stopBtn.disabled = false;
     console.log('Search started');
+    browser.runtime.sendMessage({ type: "startSearch" });
   });
 
   stopBtn.addEventListener('click', () => {
-    startBtn.disabled = false;
-    stopBtn.disabled = true;
     console.log('Search stopped');
+    browser.runtime.sendMessage({ type: "stopSearch" });
   });
 
-  // Expose a simple API to increment counter
-  window.incrementGamesCount = function() {
-    gamesAnalyzed++;
-    gamesCountEl.textContent = gamesAnalyzed;
-  };
+async function updateFromStorage() {
+  const result = await browser.storage.local.get("gamesCount");
+  const analyzedCount = result.gamesCount || 0;  // fallback to 0
+  console.log(`got count ${analyzedCount}`);
+
+  document.getElementById("gamesCount").textContent = analyzedCount;
+}
+
+browser.runtime.onMessage.addListener((msg) => {
+  if (msg.type === "updateCount") {
+    const counter = document.getElementById("gamesCount");
+    if (counter) counter.value = msg.value;
+  }
+});
+
+document.addEventListener("DOMContentLoaded", updateFromStorage);
 
   // Initial render
   render();

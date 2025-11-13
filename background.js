@@ -22,15 +22,18 @@ async function fetchRooms() {
 
 async function iterateRooms() {
   if (!searchActive) return;
-
   try {
     const [prefNames, rooms] = await Promise.all([
       getPreferredModes(),
       fetchRooms()
     ]);
 
-    analyzedCount += rooms.length;
-    browser.runtime.sendMessage({ type: "updateCount", value: analyzedCount });
+    analyzedCount += rooms["rooms"].length;
+    console.log(`analyzed ${analyzedCount}`)
+  await browser.storage.local.set({ "gamesCount":analyzedCount });
+    browser.runtime.sendMessage({ type: "updateCount", value: analyzedCount }).catch(() => {
+    // Popup not open — ignore.
+  });;
 
     // Convert preferred mode names into their numeric equivalents
     const prefCodes = prefNames.map(name => MODE_MAP[name]).filter(Boolean);
@@ -39,7 +42,8 @@ async function iterateRooms() {
     const rank = new Map(prefCodes.map((code, i) => [code, i]));
 
     // Filter and sort by preference order
-    const matching = rooms
+    const matching = rooms["rooms"]
+      .filter(r => r.players.length < r.maxPlayers)
       .filter(r => rank.has(r.mode))
       .sort((a, b) => rank.get(a.mode) - rank.get(b.mode));
 
@@ -48,12 +52,13 @@ async function iterateRooms() {
       console.log(`Top match: room ${best.id} mode=${best.mode}`, best);
       // You could notify the popup, or open the URL:
       // browser.runtime.sendMessage({ type: "matchingRooms", value: matching });
-      const gameUrl = `https://colonists.io/#${best.id}`;
+      const gameUrl = `https://colonist.io/#${best.id}`;
 
       console.log(`Opening top room: ${gameUrl}`);
-
-      await browser.tabs.create({ url: gameUrl });
       searchActive = false;
+      console.log("stopped search")
+
+      await browser.tabs.create({ url: gameUrl, active: true });
 
     } else {
       console.log("No rooms matching preferred modes");
@@ -71,11 +76,11 @@ browser.runtime.onMessage.addListener((msg, sender) => {
   if (msg.type === "startSearch") {
     if (!searchActive) {
       searchActive = true;
-      analyzedCount = 0;
       iterateRooms();
     }
   } else if (msg.type === "stopSearch") {
     searchActive = false;
+    analyzedCount = 0
   }
 });
 

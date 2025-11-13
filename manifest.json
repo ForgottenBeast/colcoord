@@ -6,7 +6,7 @@
   "icons": {
     "48": "icons/favicon.png"
   },
-  "permissions": ["storage", "alarms", "tabs","*://*.colonists.io/*"],
+  "permissions": ["storage", "alarms", "tabs","*://*.colonist.io/*"],
   "background": {
     "scripts": ["background.js"]
   },
