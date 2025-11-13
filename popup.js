@@ -97,7 +97,6 @@
 async function updateFromStorage() {
   const result = await browser.storage.local.get("gamesCount");
   const analyzedCount = result.gamesCount || 0;  // fallback to 0
-  console.log(`got count ${analyzedCount}`);
 
   document.getElementById("gamesCount").textContent = analyzedCount;
 }
@@ -105,7 +104,7 @@ async function updateFromStorage() {
 browser.runtime.onMessage.addListener((msg) => {
   if (msg.type === "updateCount") {
     const counter = document.getElementById("gamesCount");
-    if (counter) counter.value = msg.value;
+    counter.textContent = msg.value
   }
 });
 
