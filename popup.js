@@ -4,7 +4,6 @@
   const modesList = document.getElementById('modesList');
   const friendsList = document.getElementById('friendsList');
   const newModeInput = document.getElementById('newModeInput');
-  const addModeBtn = document.getElementById('addModeBtn');
   const friendInput = document.getElementById('friendInput');
   const addFriendBtn = document.getElementById('addFriendBtn');
   const gamesCountEl = document.getElementById('gamesCount');
@@ -15,21 +14,12 @@
 
   function save(key, arr){ localStorage.setItem(key, JSON.stringify(arr)); }
 
-  function renderList(listEl, items, key, allowDrag) {
+  function renderList(listEl, items, key) {
     listEl.innerHTML = '';
     items.forEach((item, i) => {
       const li = document.createElement('li');
       li.textContent = item;
       li.dataset.index = i;
-
-      if (allowDrag) {
-        li.setAttribute('draggable','true');
-        li.addEventListener('dragstart', onDragStart);
-        li.addEventListener('dragover', onDragOver);
-        li.addEventListener('drop', onDrop);
-        li.addEventListener('dragend', onDragEnd);
-      }
-
       const removeBtn = document.createElement('button');
       removeBtn.className = 'remove';
       removeBtn.textContent = '×';
@@ -43,33 +33,11 @@
     });
   }
 
-  let dragSrcIndex = null;
-  function onDragStart(e){ dragSrcIndex = Number(this.dataset.index); this.style.opacity='0.6'; }
-  function onDragOver(e){ e.preventDefault(); this.classList.add('drag-over'); }
-  function onDrop(e){
-    this.classList.remove('drag-over');
-    const dst = Number(this.dataset.index);
-    if (dst === dragSrcIndex) return;
-    const [moved] = modes.splice(dragSrcIndex,1);
-    modes.splice(dst,0,moved);
-    save(MODES_KEY, modes);
-    render();
-  }
-  function onDragEnd(){ this.style.opacity='1'; document.querySelectorAll('.drag-over').forEach(el=>el.classList.remove('drag-over')); }
-
   function render(){
-    renderList(modesList, modes, MODES_KEY, true);
-    renderList(friendsList, friends, FRIENDS_KEY, false);
+    renderList(modesList, modes, MODES_KEY);
+    renderList(friendsList, friends, FRIENDS_KEY);
+    await browser.storage.local.set({"MODES_KEY":modes, "FRIENDS_KEY":friends})
   }
-
-  addModeBtn.onclick = () => {
-    const v = newModeInput.value.trim();
-    if(!v) return;
-    modes.push(v);
-    newModeInput.value='';
-    save(MODES_KEY, modes);
-    render();
-  };
 
   addFriendBtn.onclick = () => {
     const v = friendInput.value.trim();
@@ -98,6 +66,7 @@ document.addEventListener("DOMContentLoaded", () => {
   updateFromStorage()
   const startBtn = document.getElementById('startBtn');
   const stopBtn = document.getElementById('stopBtn');
+  const resetBtn = document.getElementById("resetModesBtn");
 
   startBtn.addEventListener('click', () => {
     console.log('Search started');
@@ -108,6 +77,12 @@ document.addEventListener("DOMContentLoaded", () => {
     console.log('Search stopped');
     browser.runtime.sendMessage({ type: "stopSearch" });
   });
+  resetBtn.addEventListener('click',() => {
+    console.log("resetting modelist")
+    modes = ["Sf + C&K 4P","Sf + C&K 6P","Cities & Knights 4P","Cities & Knights 5-6P"];
+    render();
+  });
+
 
 });
 
