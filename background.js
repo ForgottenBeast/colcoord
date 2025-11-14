@@ -8,8 +8,9 @@ const MODE_MAP = {
 };
 
 async function getPreferredModes() {
-  const result = await browser.storage.local.get("preferredModes");
+  const result = await browser.storage.local.get("MODES_KEY");
   // Example fallback if nothing stored yet
+  console.log(`prefmodes: ${result.preferredModes}`)
   return result.preferredModes ||["Sf + C&K 4P","Sf + C&K 6P","Cities & Knights 4P","Cities & Knights 5-6P"];
 }
 
@@ -37,10 +38,11 @@ async function iterateRooms() {
         console.log(`friends: ${friendsList}`)
         browser.runtime.sendMessage({ type: "updateCount", value: analyzedCount }).catch(() => {
         // Popup not open — ignore.
-      });
+  });
 
         // Convert preferred mode names into their numeric equivalents
         const prefCodes = prefNames.map(name => MODE_MAP[name]).filter(Boolean);
+        console.log(`got prefcodes ${prefCodes}`)
 
         // Rank map: numeric code → preference rank (lower = better)
         const rank = new Map(prefCodes.map((code, i) => [code, i]));
