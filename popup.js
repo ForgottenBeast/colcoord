@@ -1,5 +1,5 @@
-  const MODES_KEY = 'ext_game_modes_v3';
-  const FRIENDS_KEY = 'ext_friends_v3';
+  const MODES_KEY = 'modes';
+  const FRIENDS_KEY = 'friends';
 
   const modesList = document.getElementById('modesList');
   const friendsList = document.getElementById('friendsList');
@@ -7,11 +7,27 @@
   const addFriendBtn = document.getElementById('addFriendBtn');
   const gamesCountEl = document.getElementById('gamesCount');
 
-  let modes = JSON.parse(localStorage.getItem(MODES_KEY) || '["Sf + C&K 4P","Sf + C&K 6P","Cities & Knights 4P","Cities & Knights 5-6P"]');
-  let friends = JSON.parse(localStorage.getItem(FRIENDS_KEY) || '[]');
+  let modes = [];
+  let friends = [];
   let gamesAnalyzed = 0;
 
-  function save(key, arr){ localStorage.setItem(key, JSON.stringify(arr)); }
+  async function loadStorage() {
+  let result = await browser.storage.local.get([MODES_KEY, FRIENDS_KEY]);
+
+  if (result[MODES_KEY]) modes = result[MODES_KEY];
+  else modes = ["Sf + C&K 4P","Sf + C&K 6P","Cities & Knights 4P","Cities & Knights 5-6P"];
+
+  if (result[FRIENDS_KEY]) friends = result[FRIENDS_KEY];
+  else friends = [];
+  result = await browser.storage.local.get("gamesCount");
+  const analyzedCount = result.gamesCount || 0;  // fallback to 0
+
+  document.getElementById("gamesCount").textContent = analyzedCount;
+
+  render();
+}
+
+  function save(key, arr){ browser.storage.local.set({[key]: arr}); }
 
   function renderList(listEl, items, key) {
     listEl.innerHTML = '';
@@ -46,12 +62,6 @@
     render();
   };
 
-async function updateFromStorage() {
-  const result = localStorage.getItem("gamesCount");
-  const analyzedCount = result.gamesCount || 0;  // fallback to 0
-
-  document.getElementById("gamesCount").textContent = analyzedCount;
-}
 
 browser.runtime.onMessage.addListener((msg) => {
   if (msg.type === "updateCount") {
@@ -61,7 +71,7 @@ browser.runtime.onMessage.addListener((msg) => {
 });
 
 document.addEventListener("DOMContentLoaded", () => {
-  updateFromStorage()
+  loadStorage();
   const startBtn = document.getElementById('startBtn');
   const stopBtn = document.getElementById('stopBtn');
   const resetBtn = document.getElementById("resetModesBtn");
@@ -78,11 +88,11 @@ document.addEventListener("DOMContentLoaded", () => {
   resetBtn.addEventListener('click',() => {
     console.log("resetting modelist")
     modes = ["Sf + C&K 4P","Sf + C&K 6P","Cities & Knights 4P","Cities & Knights 5-6P"];
+    save(MODES_KEY,modes)
     render();
   });
 
 
 });
 
-  // Initial render
-  render();
+//  render();
