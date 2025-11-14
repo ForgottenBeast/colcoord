@@ -1,3 +1,5 @@
+const MODES_KEY = 'modes';
+const FRIENDS_KEY = 'friends';
 let searchActive = false;
 let analyzedCount = 0;
 const MODE_MAP = {
@@ -8,9 +10,9 @@ const MODE_MAP = {
 };
 
 async function getPreferredModes() {
-  const result = await browser.storage.local.get("MODES_KEY");
+  const result = await browser.storage.local.get(MODES_KEY);
   // Example fallback if nothing stored yet
-  return JSON.parse(result.MODES_KEY || '["Sf + C&K 4P","Sf + C&K 6P","Cities & Knights 4P","Cities & Knights 5-6P"]');
+  return result[MODES_KEY] || ["Sf + C&K 4P","Sf + C&K 6P","Cities & Knights 4P","Cities & Knights 5-6P"];
 }
 
 async function fetchRooms() {
@@ -29,14 +31,14 @@ async function iterateRooms() {
         ]);
 
 
-          console.log(`prefmodes: ${result.prefNames}`);
+        console.log(`prefmodes: ${prefNames}`);
         analyzedCount += rooms["rooms"].length;
         console.log(`analyzed ${analyzedCount}`)
         await browser.storage.local.set({ "gamesCount":analyzedCount });
 
-        const result = await browser.storage.local.get("FRIENDS_KEY");
-        const friendsList = result.FRIENDS_KEY || [];
-        console.log(`friends: ${friendsList}`)
+        const result = await browser.storage.local.get(FRIENDS_KEY);
+        const friendsList = result[FRIENDS_KEY] || [];
+        console.log(`friends: ${friendsList}`);
         browser.runtime.sendMessage({ type: "updateCount", value: analyzedCount }).catch(() => {
         // Popup not open — ignore.
   });
