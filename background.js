@@ -10,8 +10,7 @@ const MODE_MAP = {
 async function getPreferredModes() {
   const result = await browser.storage.local.get("MODES_KEY");
   // Example fallback if nothing stored yet
-  console.log(`prefmodes: ${result.preferredModes}`)
-  return result.preferredModes ||["Sf + C&K 4P","Sf + C&K 6P","Cities & Knights 4P","Cities & Knights 5-6P"];
+  return JSON.parse(result.MODES_KEY || '["Sf + C&K 4P","Sf + C&K 6P","Cities & Knights 4P","Cities & Knights 5-6P"]');
 }
 
 async function fetchRooms() {
@@ -29,6 +28,8 @@ async function iterateRooms() {
           fetchRooms()
         ]);
 
+
+          console.log(`prefmodes: ${result.prefNames}`);
         analyzedCount += rooms["rooms"].length;
         console.log(`analyzed ${analyzedCount}`)
         await browser.storage.local.set({ "gamesCount":analyzedCount });
