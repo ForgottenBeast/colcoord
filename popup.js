@@ -3,7 +3,6 @@
 
   const modesList = document.getElementById('modesList');
   const friendsList = document.getElementById('friendsList');
-  const newModeInput = document.getElementById('newModeInput');
   const friendInput = document.getElementById('friendInput');
   const addFriendBtn = document.getElementById('addFriendBtn');
   const gamesCountEl = document.getElementById('gamesCount');
@@ -36,8 +35,6 @@
   function render(){
     renderList(modesList, modes, MODES_KEY);
     renderList(friendsList, friends, FRIENDS_KEY);
-    localStorage.setItem({"MODES_KEY":modes});
-    localStorage.setItem({"FRIENDS_KEY":friends});
   }
 
   addFriendBtn.onclick = () => {
@@ -50,7 +47,7 @@
   };
 
 async function updateFromStorage() {
-  const result = await localStorage.getItem("gamesCount");
+  const result = localStorage.getItem("gamesCount");
   const analyzedCount = result.gamesCount || 0;  // fallback to 0
 
   document.getElementById("gamesCount").textContent = analyzedCount;
