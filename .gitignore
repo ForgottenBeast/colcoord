@@ -1,3 +1,4 @@
 .direnv/*
 **/result
 *.vim
+web-ext-artifacts/*
