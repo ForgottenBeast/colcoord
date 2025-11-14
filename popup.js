@@ -36,7 +36,8 @@
   function render(){
     renderList(modesList, modes, MODES_KEY);
     renderList(friendsList, friends, FRIENDS_KEY);
-    await browser.storage.local.set({"MODES_KEY":modes, "FRIENDS_KEY":friends})
+    localStorage.setItem({"MODES_KEY":modes});
+    localStorage.setItem({"FRIENDS_KEY":friends});
   }
 
   addFriendBtn.onclick = () => {
@@ -49,7 +50,7 @@
   };
 
 async function updateFromStorage() {
-  const result = await browser.storage.local.get("gamesCount");
+  const result = await localStorage.getItem("gamesCount");
   const analyzedCount = result.gamesCount || 0;  // fallback to 0
 
   document.getElementById("gamesCount").textContent = analyzedCount;
