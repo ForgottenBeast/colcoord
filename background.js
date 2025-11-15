@@ -2,6 +2,9 @@ const MODES_KEY = 'modes';
 const FRIENDS_KEY = 'friends';
 let searchActive = false;
 let analyzedCount = 0;
+let lastOpenedTabId = null;
+let lastOpenedTime = 0;
+const TAB_TIMEOUT = 30 * 1000; // 30 seconds
 const MODE_MAP = {
 "Sf + C&K 4P" : 8,
 "Sf + C&K 6P": 9,
@@ -21,6 +24,26 @@ async function fetchRooms() {
   return await res.json(); // array of { id, mode, players, ... }
 }
 
+browser.tabs.onRemoved.addListener((tabId, removeInfo) => {
+  // Was this the tab we opened?
+  if (tabId !== lastOpenedTabId) return;
+
+  const now = Date.now();
+  const elapsed = now - lastOpenedTime;
+
+  // Check if it closed within 30 seconds
+  if (elapsed <= TAB_TIMEOUT) {
+    console.log("Opened room tab closed early — resuming search.");
+
+    if (!searchActive) {
+      searchActive = true;
+      iterateRooms();
+    }
+  }
+
+  // Reset tracking
+  lastOpenedTabId = null;
+});
 
 async function iterateRooms() {
   while (searchActive){
@@ -92,7 +115,9 @@ async function iterateRooms() {
            });
 
 
-            await browser.tabs.create({ url: gameUrl, active: true });
+            const createdTab = await browser.tabs.create({ url: gameUrl, active: true });
+            lastOpenedTabId = createdTab.id;
+            lastOpenedTime = Date.now();
 
             break; // stop after opening the first new room
           }
