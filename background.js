@@ -85,6 +85,13 @@ async function iterateRooms() {
             console.log(`Opening room: ${gameUrl}`);
 
             searchActive = false; // stop search after opening one room
+            analyzedCount = 0;
+            await browser.storage.local.set({ "gamesCount":analyzedCount });
+            browser.runtime.sendMessage({ type: "updateCount", value: analyzedCount }).catch(() => {
+            // Popup not open — ignore.
+           });
+
+
             await browser.tabs.create({ url: gameUrl, active: true });
 
             break; // stop after opening the first new room
