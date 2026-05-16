@@ -55,6 +55,7 @@ in
         PORT = toString cfg.port;
         DATABASE_PATH = "${cfg.dataDir}/colcoord.db";
         RELEASE_TMP = "${cfg.dataDir}/tmp";
+        RELEASE_COOKIE = "colcoord_cookie";
         PHX_HOST = cfg.host;
         PHX_SCRIPT_PATH = cfg.scriptPath;
         PHX_SERVER = "true";
