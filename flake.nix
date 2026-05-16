@@ -183,7 +183,12 @@
               mixEnv = "prod";
               nativeBuildInputs = [ pkgs.gcc pkgs.pkg-config pkgs.sqlite ];
               # elixir_make needs writable HOME for NIF cache (deps compile in configurePhase)
-              preConfigure = "export HOME=$TMPDIR";
+              # Wrap ln to use -f flag (mixRelease configurePhase fails on duplicate dep symlinks)
+              preConfigure = ''
+                export HOME=$TMPDIR
+                ln() { command ln -sfn "$@"; }
+                export -f ln
+              '';
               # mixNix = ./mix.nix;  # Uncomment after generating mix.nix
             };
 
