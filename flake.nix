@@ -186,7 +186,13 @@
               # Wrap ln to use -f flag (mixRelease configurePhase fails on duplicate dep symlinks)
               preConfigure = ''
                 export HOME=$TMPDIR
-                ln() { command ln -sfn "$@"; }
+                ln() {
+                  local target="''${@: -1}"
+                  if [ -d "$target" ] && [ ! -L "$target" ]; then
+                    rm -rf "$target"
+                  fi
+                  command ln -sfn "$@"
+                }
                 export -f ln
               '';
               # mixNix = ./mix.nix;  # Uncomment after generating mix.nix
