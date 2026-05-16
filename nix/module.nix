@@ -38,6 +38,12 @@ in
       default = "localhost";
       description = "Hostname for the Phoenix endpoint";
     };
+
+    scriptPath = lib.mkOption {
+      type = lib.types.str;
+      default = "/";
+      description = "URL path prefix (e.g., /colonist for subfolder deployment)";
+    };
   };
 
   config = lib.mkIf cfg.enable {
@@ -50,6 +56,8 @@ in
         DATABASE_PATH = "${cfg.dataDir}/colcoord.db";
         RELEASE_TMP = "${cfg.dataDir}/tmp";
         PHX_HOST = cfg.host;
+        PHX_SCRIPT_PATH = cfg.scriptPath;
+        PHX_SERVER = "true";
       };
       serviceConfig = {
         Type = "exec";
