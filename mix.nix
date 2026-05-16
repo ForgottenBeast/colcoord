@@ -177,18 +177,6 @@ let
       beamDeps = [ mime mint nimble_options nimble_pool telemetry ];
     };
 
-    fine = buildMix rec {
-      name = "fine";
-      version = "0.1.6";
-
-      src = fetchHex {
-        pkg = "fine";
-        version = "${version}";
-        sha256 = "5638eb4495488e885ebec167fa57973e5c35e1a50c344eb7666c90ec1c4e3b12";
-      };
-
-      beamDeps = [];
-    };
 
     hpax = buildMix rec {
       name = "hpax";
@@ -216,18 +204,6 @@ let
       beamDeps = [ decimal ];
     };
 
-    lazy_html = buildMix rec {
-      name = "lazy_html";
-      version = "0.1.11";
-
-      src = fetchHex {
-        pkg = "lazy_html";
-        version = "${version}";
-        sha256 = "3b1be592929c31eca1a21673d25696e5c14cddfe922d9d1a3e3b48be4163883b";
-      };
-
-      beamDeps = [ cc_precompiler elixir_make fine ];
-    };
 
     mime = buildMix rec {
       name = "mime";
@@ -343,7 +319,7 @@ let
         sha256 = "a353c51ac1e3190910f01a6100c7d5cc02c5e22e7374fd817bd3aedd21149039";
       };
 
-      beamDeps = [ jason lazy_html phoenix phoenix_html phoenix_template plug telemetry ];
+      beamDeps = [ jason phoenix phoenix_html phoenix_template plug telemetry ];
     };
 
     phoenix_pubsub = buildMix rec {
