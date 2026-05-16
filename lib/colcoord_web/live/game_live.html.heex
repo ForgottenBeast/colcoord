@@ -1,0 +1,143 @@
+<div id="game-opener" phx-hook="GameOpener" class="min-h-screen bg-base-300 p-4">
+  <div class="max-w-4xl mx-auto space-y-4">
+    <h1 class="text-2xl font-bold text-base-content">Colcoord</h1>
+
+    <!-- Error Banner -->
+    <div :if={@error} class="alert alert-error">
+      <span>{@error}</span>
+    </div>
+
+    <!-- Fallback Link -->
+    <div :if={@show_fallback_link} class="alert alert-warning">
+      <span>Popup blocked!</span>
+      <a href={@fallback_url} target="_blank" class="btn btn-sm btn-primary">
+        Open Game Manually
+      </a>
+    </div>
+
+    <!-- Auto-Join Toggle -->
+    <div class="card bg-base-100 shadow-md">
+      <div class="card-body flex-row items-center justify-between py-3">
+        <span class="font-semibold text-base-content">Auto-Join</span>
+        <input
+          type="checkbox"
+          class="toggle toggle-primary"
+          checked={@auto_join}
+          phx-click="toggle_auto_join"
+        />
+      </div>
+    </div>
+
+    <!-- Mode Selector -->
+    <div class="card bg-base-100 shadow-md">
+      <div class="card-body py-3">
+        <h2 class="card-title text-sm uppercase tracking-wide text-base-content/70">Game Modes</h2>
+        <div class="grid grid-cols-2 gap-2 mt-2">
+          <%= for {code, label} <- @mode_map do %>
+            <label class="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                class="checkbox checkbox-primary checkbox-sm"
+                checked={code in @selected_modes}
+                phx-click="toggle_mode"
+                phx-value-code={code}
+              />
+              <span class="text-sm text-base-content">{label}</span>
+            </label>
+          <% end %>
+        </div>
+      </div>
+    </div>
+
+    <!-- Friends List -->
+    <div class="card bg-base-100 shadow-md">
+      <div class="card-body py-3">
+        <h2 class="card-title text-sm uppercase tracking-wide text-base-content/70">Friends</h2>
+        <div class="flex flex-wrap gap-2 mt-2">
+          <%= for name <- @friends do %>
+            <span class="badge badge-primary gap-1">
+              {name}
+              <button
+                phx-click="remove_friend"
+                phx-value-name={name}
+                class="btn btn-ghost btn-xs px-0"
+              >
+                &times;
+              </button>
+            </span>
+          <% end %>
+        </div>
+        <form phx-submit="add_friend" class="flex gap-2 mt-2">
+          <input
+            type="text"
+            name="name"
+            value={@friend_input}
+            phx-change="update_friend_input"
+            placeholder="Add friend..."
+            class="input input-bordered input-sm flex-1"
+          />
+          <button type="submit" class="btn btn-primary btn-sm">Add</button>
+        </form>
+      </div>
+    </div>
+
+    <!-- Game List -->
+    <div class="card bg-base-100 shadow-md">
+      <div class="card-body py-3">
+        <h2 class="card-title text-sm uppercase tracking-wide text-base-content/70">
+          Available Games
+          <span class="badge badge-ghost badge-sm">{length(@rooms)}</span>
+        </h2>
+        <div :if={@rooms == []} class="text-base-content/50 text-sm mt-2">
+          No matching games found. Enable auto-join to start searching.
+        </div>
+        <div class="overflow-x-auto mt-2">
+          <table :if={@rooms != []} class="table table-sm">
+            <thead>
+              <tr>
+                <th>Mode</th>
+                <th>Players</th>
+                <th>Host</th>
+                <th>Friends</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              <%= for room <- @rooms do %>
+                <tr class="hover">
+                  <td class="text-sm">{Map.get(@mode_map, room["mode"], "Mode #{room["mode"]}")}</td>
+                  <td class="text-sm">
+                    {length(room["players"] || [])}/{room["maxPlayers"]}
+                  </td>
+                  <td class="text-sm">{List.first(room["players"] || []) || "—"}</td>
+                  <td>
+                    <%= for p <- (room["players"] || []), p in @friends do %>
+                      <span class="badge badge-accent badge-sm">{p}</span>
+                    <% end %>
+                  </td>
+                  <td>
+                    <button
+                      phx-click="open_game"
+                      phx-value-id={room["id"]}
+                      class="btn btn-primary btn-xs"
+                    >
+                      Join
+                    </button>
+                  </td>
+                </tr>
+              <% end %>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Status Bar -->
+    <div class="text-xs text-base-content/50 flex justify-between">
+      <span>Games analyzed: {@games_analyzed}</span>
+      <span :if={@auto_join} class="badge badge-success badge-xs gap-1">
+        <span class="animate-pulse">●</span> Searching
+      </span>
+    </div>
+  </div>
+</div>
