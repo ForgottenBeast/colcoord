@@ -181,7 +181,7 @@
               version = "0.1.0";
               inherit src;
               mixEnv = "prod";
-              nativeBuildInputs = [ pkgs.gcc pkgs.pkg-config pkgs.sqlite ];
+              nativeBuildInputs = [ pkgs.gcc pkgs.pkg-config pkgs.sqlite pkgs.esbuild pkgs.tailwindcss_4 ];
               # elixir_make needs writable HOME for NIF cache (deps compile in configurePhase)
               # Wrap ln to use -f flag (mixRelease configurePhase fails on duplicate dep symlinks)
               preConfigure = ''
@@ -194,6 +194,32 @@
                   command ln -sfn "$@"
                 }
                 export -f ln
+              '';
+              # Build JS/CSS assets directly (Mix can't download binaries in sandbox)
+              postBuild = ''
+                mkdir -p priv/static/assets/js priv/static/assets/css
+
+                # heroicons dep (sparse: "optimized") needed at compile time for icon components
+                mkdir -p deps/heroicons
+                cp -r ${pkgs.fetchFromGitHub {
+                  owner = "tailwindlabs";
+                  repo = "heroicons";
+                  rev = "v2.2.0";
+                  sha256 = "sha256-A8JTVl0Yig++G2B8dyoq5gMpVRnU/wL4I74WK8sB6aU=";
+                  sparseCheckout = [ "optimized" ];
+                }}/optimized deps/heroicons/optimized
+
+                NODE_PATH="deps:_build/prod" ${pkgs.esbuild}/bin/esbuild \
+                  assets/js/app.js --bundle --target=es2022 \
+                  --outdir=priv/static/assets/js \
+                  --external:/fonts/* --external:/images/*
+
+                ${pkgs.tailwindcss_4}/bin/tailwindcss \
+                  --input=assets/css/app.css \
+                  --output=priv/static/assets/css/app.css \
+                  --minify
+
+                mix phx.digest --no-deps-check
               '';
               # mixNix = ./mix.nix;  # Uncomment after generating mix.nix
             };
