@@ -17,8 +17,10 @@ defmodule Colcoord.Settings do
     11 => "Base 2P"
   }
 
+  @all_modes Jason.encode!(Map.keys(@mode_map))
+
   schema "settings" do
-    field :selected_modes, :string, default: "[]"
+    field :selected_modes, :string, default: @all_modes
     field :friends, :string, default: "[]"
     field :auto_join, :boolean, default: false
     field :last_game_found, :string
@@ -58,8 +60,13 @@ defmodule Colcoord.Settings do
     case Colcoord.Repo.one(__MODULE__) do
       nil ->
         %__MODULE__{}
-        |> changeset(%{selected_modes: "[]", friends: "[]", auto_join: false})
+        |> changeset(%{selected_modes: @all_modes, friends: "[]", auto_join: false})
         |> Colcoord.Repo.insert!()
+
+      %__MODULE__{selected_modes: modes} = settings when modes in [nil, "[]", ""] ->
+        settings
+        |> changeset(%{selected_modes: @all_modes})
+        |> Colcoord.Repo.update!()
 
       settings ->
         settings

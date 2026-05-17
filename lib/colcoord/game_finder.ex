@@ -26,6 +26,10 @@ defmodule Colcoord.GameFinder do
     Phoenix.PubSub.subscribe(@pubsub, @topic)
   end
 
+  def get_rooms do
+    GenServer.call(__MODULE__, :get_rooms)
+  end
+
   # Server callbacks
 
   @impl true
@@ -40,13 +44,19 @@ defmodule Colcoord.GameFinder do
       tab_opened_at: nil,
       data_source: :server,
       http_client: http_client,
-      error_count: 0
+      error_count: 0,
+      last_rooms: []
     }
 
     # Start polling immediately so rooms are displayed as soon as someone connects
     schedule_poll(0)
 
     {:ok, state}
+  end
+
+  @impl true
+  def handle_call(:get_rooms, _from, state) do
+    {:reply, state.last_rooms, state}
   end
 
   @impl true
@@ -95,6 +105,7 @@ defmodule Colcoord.GameFinder do
     friends_list = Settings.decode_friends(settings)
 
     filtered = RoomFilter.filter_and_sort(body, selected_modes, friends_list, state.last_game_id)
+    state = %{state | last_rooms: filtered}
     broadcast({:rooms_update, filtered})
 
     if settings.auto_join do

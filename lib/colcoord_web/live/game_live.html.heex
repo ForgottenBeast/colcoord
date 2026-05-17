@@ -89,7 +89,7 @@
           <span class="badge badge-ghost badge-sm">{length(@rooms)}</span>
         </h2>
         <div :if={@rooms == []} class="text-base-content/50 text-sm mt-2">
-          No matching games found. Enable auto-join to start searching.
+          No matching games found. Searching...
         </div>
         <div class="overflow-x-auto mt-2">
           <table :if={@rooms != []} class="table table-sm">

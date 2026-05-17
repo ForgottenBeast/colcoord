@@ -7,15 +7,19 @@ defmodule ColcoordWeb.GameLive do
 
   @impl true
   def mount(_params, _session, socket) do
-    if connected?(socket) do
-      GameFinder.subscribe()
-    end
+    rooms =
+      if connected?(socket) do
+        GameFinder.subscribe()
+        GameFinder.get_rooms()
+      else
+        []
+      end
 
     settings = Settings.get_or_create()
 
     socket =
       socket
-      |> assign(:rooms, [])
+      |> assign(:rooms, rooms)
       |> assign(:settings, settings)
       |> assign(:selected_modes, Settings.decode_modes(settings))
       |> assign(:friends, Settings.decode_friends(settings))
