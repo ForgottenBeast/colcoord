@@ -17,7 +17,7 @@ defmodule Colcoord.Settings do
     11 => "Base 2P"
   }
 
-  @all_modes Jason.encode!(Map.keys(@mode_map))
+  @all_modes Jason.encode!(Enum.sort(Map.keys(@mode_map)))
 
   schema "settings" do
     field :selected_modes, :string, default: @all_modes
@@ -37,7 +37,10 @@ defmodule Colcoord.Settings do
   end
 
   def decode_modes(%__MODULE__{selected_modes: json}) do
-    Jason.decode!(json || "[]")
+    case Jason.decode(json || "[]") do
+      {:ok, v} -> v
+      _ -> []
+    end
   end
 
   def encode_modes(mode_codes) when is_list(mode_codes) do
@@ -45,15 +48,14 @@ defmodule Colcoord.Settings do
   end
 
   def decode_friends(%__MODULE__{friends: json}) do
-    Jason.decode!(json || "[]")
+    case Jason.decode(json || "[]") do
+      {:ok, v} -> v
+      _ -> []
+    end
   end
 
   def encode_friends(usernames) when is_list(usernames) do
     Jason.encode!(usernames)
-  end
-
-  def get! do
-    Colcoord.Repo.one!(__MODULE__)
   end
 
   def get_or_create do

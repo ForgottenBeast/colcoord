@@ -12,8 +12,15 @@ const GameOpener = {
     });
   },
   startCloseDetection() {
+    if (this.checkInterval) clearInterval(this.checkInterval);
     this.checkInterval = setInterval(() => {
-      if (this.openedWindow && this.openedWindow.closed) {
+      try {
+        if (this.openedWindow && this.openedWindow.closed) {
+          clearInterval(this.checkInterval);
+          this.pushEvent("tab_closed", {});
+          this.openedWindow = null;
+        }
+      } catch (_e) {
         clearInterval(this.checkInterval);
         this.pushEvent("tab_closed", {});
         this.openedWindow = null;

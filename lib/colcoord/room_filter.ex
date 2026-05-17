@@ -15,9 +15,8 @@ defmodule Colcoord.RoomFilter do
     end)
   end
 
-  def find_match(response, selected_modes, friends_list, last_game_id) do
-    response
-    |> filter_and_sort(selected_modes, friends_list, last_game_id)
+  def find_match(filtered_rooms, last_game_id) do
+    filtered_rooms
     |> Enum.reject(fn room -> room["id"] == last_game_id end)
     |> List.first()
   end

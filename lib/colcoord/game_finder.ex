@@ -19,7 +19,7 @@ defmodule Colcoord.GameFinder do
   end
 
   def notify_settings_changed do
-    send(__MODULE__, :settings_changed)
+    GenServer.cast(__MODULE__, :settings_changed)
   end
 
   def subscribe do
@@ -41,8 +41,6 @@ defmodule Colcoord.GameFinder do
       settings: settings,
       last_game_id: settings.last_game_found,
       polling: true,
-      tab_opened_at: nil,
-      data_source: :server,
       http_client: http_client,
       error_count: 0,
       last_rooms: []
@@ -61,9 +59,15 @@ defmodule Colcoord.GameFinder do
 
   @impl true
   def handle_cast(:resume_search, state) do
-    state = %{state | tab_opened_at: nil, polling: true}
+    state = %{state | polling: true}
     schedule_poll(0)
     {:noreply, state}
+  end
+
+  def handle_cast(:settings_changed, state) do
+    settings = Settings.get_or_create()
+    schedule_poll(500)
+    {:noreply, %{state | settings: settings}}
   end
 
   @impl true
@@ -82,11 +86,6 @@ defmodule Colcoord.GameFinder do
         schedule_poll(backoff)
         {:noreply, %{state | error_count: error_count}}
     end
-  end
-
-  def handle_info(:settings_changed, state) do
-    settings = Settings.get_or_create()
-    {:noreply, %{state | settings: settings}}
   end
 
   def handle_info({:client_rooms, rooms}, state) do
@@ -109,19 +108,17 @@ defmodule Colcoord.GameFinder do
     broadcast({:rooms_update, filtered})
 
     if settings.auto_join do
-      case RoomFilter.find_match(body, selected_modes, friends_list, state.last_game_id) do
+      case RoomFilter.find_match(filtered, state.last_game_id) do
         nil ->
           schedule_poll(@poll_interval)
           {:noreply, state}
 
         room ->
           broadcast({:auto_join, room})
-          now = System.monotonic_time(:second)
 
           new_state = %{
             state
-            | tab_opened_at: now,
-              last_game_id: room["id"],
+            | last_game_id: room["id"],
               polling: false
           }
 

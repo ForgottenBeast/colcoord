@@ -17,6 +17,9 @@ config :colcoord, ColcoordWeb.Endpoint,
   secret_key_base: "M9K09saeE+xGA6OhmnqACzumNWduyUA9kau+S82E2nv0VytTiChYiQKdTcbyER70",
   server: false
 
+# Disable GameFinder during tests to prevent spurious PubSub messages
+config :colcoord, start_game_finder: false
+
 # Print only warnings and errors during test
 config :logger, level: :warning
 

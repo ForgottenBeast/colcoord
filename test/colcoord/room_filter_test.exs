@@ -70,24 +70,24 @@ defmodule Colcoord.RoomFilterTest do
     end
   end
 
-  describe "find_match/4" do
+  describe "find_match/2" do
     test "returns first matching room" do
-      rooms = %{"rooms" => [@room1, @room2]}
-      result = RoomFilter.find_match(rooms, [6, 7], [], nil)
+      filtered = RoomFilter.filter_and_sort(%{"rooms" => [@room1, @room2]}, [6, 7], [], nil)
+      result = RoomFilter.find_match(filtered, nil)
 
       assert result["id"] == "abc"
     end
 
     test "skips last game id" do
-      rooms = %{"rooms" => [@room1, @room2]}
-      result = RoomFilter.find_match(rooms, [6, 7], [], "abc")
+      filtered = RoomFilter.filter_and_sort(%{"rooms" => [@room1, @room2]}, [6, 7], [], nil)
+      result = RoomFilter.find_match(filtered, "abc")
 
       assert result["id"] == "def"
     end
 
     test "returns nil when no match" do
-      rooms = %{"rooms" => [@room1]}
-      result = RoomFilter.find_match(rooms, [99], [], nil)
+      filtered = RoomFilter.filter_and_sort(%{"rooms" => [@room1]}, [99], [], nil)
+      result = RoomFilter.find_match(filtered, nil)
 
       assert result == nil
     end

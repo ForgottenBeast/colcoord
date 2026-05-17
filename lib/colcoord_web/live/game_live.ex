@@ -10,7 +10,7 @@ defmodule ColcoordWeb.GameLive do
     rooms =
       if connected?(socket) do
         GameFinder.subscribe()
-        GameFinder.get_rooms()
+        if Process.whereis(GameFinder) != nil, do: GameFinder.get_rooms(), else: []
       else
         []
       end
@@ -27,7 +27,6 @@ defmodule ColcoordWeb.GameLive do
       |> assign(:show_fallback_link, false)
       |> assign(:fallback_url, nil)
       |> assign(:error, nil)
-      |> assign(:games_analyzed, 0)
       |> assign(:mode_map, @mode_map)
       |> assign(:friend_input, "")
 
@@ -36,8 +35,7 @@ defmodule ColcoordWeb.GameLive do
 
   @impl true
   def handle_info({:rooms_update, rooms}, socket) do
-    {:noreply,
-     assign(socket, rooms: rooms, games_analyzed: socket.assigns.games_analyzed + length(rooms))}
+    {:noreply, assign(socket, rooms: rooms)}
   end
 
   def handle_info({:auto_join, room}, socket) do
@@ -59,8 +57,8 @@ defmodule ColcoordWeb.GameLive do
         do: List.delete(modes, code),
         else: modes ++ [code]
 
-    persist_and_notify(socket, %{selected_modes: Settings.encode_modes(new_modes)})
-    {:noreply, assign(socket, selected_modes: new_modes)}
+    updated = persist_and_notify(socket, %{selected_modes: Settings.encode_modes(new_modes)})
+    {:noreply, assign(socket, settings: updated, selected_modes: new_modes)}
   end
 
   def handle_event("add_friend", %{"name" => name}, socket) do
@@ -71,21 +69,21 @@ defmodule ColcoordWeb.GameLive do
     else
       friends = socket.assigns.friends
       new_friends = if name in friends, do: friends, else: friends ++ [name]
-      persist_and_notify(socket, %{friends: Settings.encode_friends(new_friends)})
-      {:noreply, assign(socket, friends: new_friends, friend_input: "")}
+      updated = persist_and_notify(socket, %{friends: Settings.encode_friends(new_friends)})
+      {:noreply, assign(socket, settings: updated, friends: new_friends, friend_input: "")}
     end
   end
 
   def handle_event("remove_friend", %{"name" => name}, socket) do
     new_friends = List.delete(socket.assigns.friends, name)
-    persist_and_notify(socket, %{friends: Settings.encode_friends(new_friends)})
-    {:noreply, assign(socket, friends: new_friends)}
+    updated = persist_and_notify(socket, %{friends: Settings.encode_friends(new_friends)})
+    {:noreply, assign(socket, settings: updated, friends: new_friends)}
   end
 
   def handle_event("toggle_auto_join", _params, socket) do
     new_val = !socket.assigns.auto_join
-    persist_and_notify(socket, %{auto_join: new_val})
-    {:noreply, assign(socket, auto_join: new_val)}
+    updated = persist_and_notify(socket, %{auto_join: new_val})
+    {:noreply, assign(socket, settings: updated, auto_join: new_val)}
   end
 
   def handle_event("open_game", %{"id" => id}, socket) do
@@ -107,12 +105,12 @@ defmodule ColcoordWeb.GameLive do
   end
 
   defp persist_and_notify(socket, attrs) do
-    settings = socket.assigns.settings
-
-    settings
-    |> Settings.changeset(attrs)
-    |> Colcoord.Repo.update!()
+    updated =
+      socket.assigns.settings
+      |> Settings.changeset(attrs)
+      |> Colcoord.Repo.update!()
 
     GameFinder.notify_settings_changed()
+    updated
   end
 end

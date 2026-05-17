@@ -252,6 +252,7 @@
 
             # Additional tools
             inotify-tools # For file watching (Phoenix live reload)
+            act # Run GitHub Actions locally
 
             # Local dev: secrets vault (OpenBao) + OIDC provider (Dex)
             openbao

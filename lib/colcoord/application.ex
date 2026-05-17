@@ -7,19 +7,22 @@ defmodule Colcoord.Application do
 
   @impl true
   def start(_type, _args) do
-    children = [
+    base_children = [
       ColcoordWeb.Telemetry,
       Colcoord.Repo,
       {Ecto.Migrator,
        repos: Application.fetch_env!(:colcoord, :ecto_repos), skip: skip_migrations?()},
       {DNSCluster, query: Application.get_env(:colcoord, :dns_cluster_query) || :ignore},
-      {Phoenix.PubSub, name: Colcoord.PubSub},
-      Colcoord.GameFinder,
-      ColcoordWeb.Endpoint
+      {Phoenix.PubSub, name: Colcoord.PubSub}
     ]
 
-    # See https://hexdocs.pm/elixir/Supervisor.html
-    # for other strategies and supported options
+    game_finder =
+      if Application.get_env(:colcoord, :start_game_finder, true),
+        do: [Colcoord.GameFinder],
+        else: []
+
+    children = base_children ++ game_finder ++ [ColcoordWeb.Endpoint]
+
     opts = [strategy: :one_for_one, name: Colcoord.Supervisor]
     Supervisor.start_link(children, opts)
   end

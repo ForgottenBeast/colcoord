@@ -19,11 +19,26 @@ defmodule Colcoord.GameFinderTest do
     {:ok, pid} =
       GenServer.start_link(GameFinder, [http_client: MockHttpClient], [])
 
+    # Allow the GenServer process to use the test's sandbox DB connection
+    Ecto.Adapters.SQL.Sandbox.allow(Colcoord.Repo, self(), pid)
+
     on_exit(fn ->
       :persistent_term.erase({MockHttpClient, :rooms})
     end)
 
     %{pid: pid}
+  end
+
+  defp set_settings(attrs) do
+    Settings.get_or_create()
+    |> Settings.changeset(attrs)
+    |> Colcoord.Repo.update!()
+  end
+
+  defp sync_settings(pid) do
+    GenServer.cast(pid, :settings_changed)
+    # :sys.get_state drains the GenServer mailbox before returning
+    :sys.get_state(pid)
   end
 
   describe "polling" do
@@ -41,15 +56,9 @@ defmodule Colcoord.GameFinderTest do
         ]
       })
 
-      settings = Settings.get_or_create()
+      set_settings(%{selected_modes: Jason.encode!([6])})
+      sync_settings(pid)
 
-      settings
-      |> Settings.changeset(%{selected_modes: Jason.encode!([6])})
-      |> Colcoord.Repo.update!()
-
-      send(pid, :settings_changed)
-
-      # Trigger a poll
       send(pid, :poll)
 
       assert_receive {:rooms_update, rooms}, 1000
@@ -71,14 +80,8 @@ defmodule Colcoord.GameFinderTest do
         ]
       })
 
-      settings = Settings.get_or_create()
-
-      settings
-      |> Settings.changeset(%{selected_modes: Jason.encode!([6]), auto_join: true})
-      |> Colcoord.Repo.update!()
-
-      send(pid, :settings_changed)
-      Process.sleep(50)
+      set_settings(%{selected_modes: Jason.encode!([6]), auto_join: true})
+      sync_settings(pid)
 
       send(pid, :poll)
 
@@ -100,14 +103,8 @@ defmodule Colcoord.GameFinderTest do
         ]
       })
 
-      settings = Settings.get_or_create()
-
-      settings
-      |> Settings.changeset(%{selected_modes: Jason.encode!([6]), auto_join: true})
-      |> Colcoord.Repo.update!()
-
-      send(pid, :settings_changed)
-      Process.sleep(50)
+      set_settings(%{selected_modes: Jason.encode!([6]), auto_join: true})
+      sync_settings(pid)
 
       send(pid, :poll)
       assert_receive {:auto_join, _room}, 1000
@@ -119,7 +116,7 @@ defmodule Colcoord.GameFinderTest do
   end
 
   describe "resume_search" do
-    test "clears tab_opened_at and restarts polling", %{pid: pid} do
+    test "restarts polling after auto_join", %{pid: pid} do
       Phoenix.PubSub.subscribe(Colcoord.PubSub, "games")
 
       :persistent_term.put({MockHttpClient, :rooms}, %{
@@ -128,14 +125,8 @@ defmodule Colcoord.GameFinderTest do
         ]
       })
 
-      settings = Settings.get_or_create()
-
-      settings
-      |> Settings.changeset(%{selected_modes: Jason.encode!([6])})
-      |> Colcoord.Repo.update!()
-
-      send(pid, :settings_changed)
-      Process.sleep(50)
+      set_settings(%{selected_modes: Jason.encode!([6])})
+      sync_settings(pid)
 
       GenServer.cast(pid, :resume_search)
 
@@ -151,17 +142,12 @@ defmodule Colcoord.GameFinderTest do
         ]
       })
 
-      settings = Settings.get_or_create()
-
-      settings
-      |> Settings.changeset(%{selected_modes: Jason.encode!([6])})
-      |> Colcoord.Repo.update!()
-
-      send(pid, :settings_changed)
-      Process.sleep(50)
+      set_settings(%{selected_modes: Jason.encode!([6])})
+      sync_settings(pid)
 
       send(pid, :poll)
-      Process.sleep(100)
+      # Drain mailbox to ensure poll has been processed
+      :sys.get_state(pid)
 
       rooms = GenServer.call(pid, :get_rooms)
       assert length(rooms) == 1
