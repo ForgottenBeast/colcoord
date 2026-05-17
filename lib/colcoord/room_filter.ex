@@ -9,7 +9,7 @@ defmodule Colcoord.RoomFilter do
     |> filter(selected_modes)
     |> Enum.sort_by(fn room ->
       players = room["players"] || []
-      friend_count = Enum.count(players, &(&1 in friends_list))
+      friend_count = Enum.count(players, fn p -> p["username"] in friends_list end)
       mode_position = Map.get(mode_rank, room["mode"], 999)
       {-friend_count, mode_position}
     end)

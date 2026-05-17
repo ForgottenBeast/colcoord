@@ -109,10 +109,10 @@
                   <td class="text-sm">
                     {length(room["players"] || [])}/{room["maxPlayers"]}
                   </td>
-                  <td class="text-sm">{List.first(room["players"] || []) || "—"}</td>
+                  <td class="text-sm">{(List.first(room["players"] || []) || %{})["username"] || "—"}</td>
                   <td>
-                    <%= for p <- (room["players"] || []), p in @friends do %>
-                      <span class="badge badge-accent badge-sm">{p}</span>
+                    <%= for p <- (room["players"] || []), p["username"] in @friends do %>
+                      <span class="badge badge-accent badge-sm">{p["username"]}</span>
                     <% end %>
                   </td>
                   <td>
