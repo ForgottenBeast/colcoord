@@ -80,13 +80,6 @@ defmodule ColcoordWeb.GameLive do
   def handle_event("toggle_auto_join", _params, socket) do
     new_val = !socket.assigns.auto_join
     persist_and_notify(socket, %{auto_join: new_val})
-
-    if new_val do
-      GameFinder.start_search(:auto)
-    else
-      GameFinder.stop_search()
-    end
-
     {:noreply, assign(socket, auto_join: new_val)}
   end
 

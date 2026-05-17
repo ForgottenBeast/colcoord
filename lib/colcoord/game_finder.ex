@@ -14,14 +14,6 @@ defmodule Colcoord.GameFinder do
     GenServer.start_link(__MODULE__, opts, name: __MODULE__)
   end
 
-  def start_search(mode \\ :auto) do
-    GenServer.cast(__MODULE__, {:start_search, mode})
-  end
-
-  def stop_search do
-    GenServer.cast(__MODULE__, :stop_search)
-  end
-
   def resume_search do
     GenServer.cast(__MODULE__, :resume_search)
   end
@@ -44,27 +36,20 @@ defmodule Colcoord.GameFinder do
     state = %{
       settings: settings,
       last_game_id: settings.last_game_found,
-      polling: false,
+      polling: true,
       tab_opened_at: nil,
       data_source: :server,
       http_client: http_client,
       error_count: 0
     }
 
+    # Start polling immediately so rooms are displayed as soon as someone connects
+    schedule_poll(0)
+
     {:ok, state}
   end
 
   @impl true
-  def handle_cast({:start_search, _mode}, state) do
-    state = %{state | polling: true}
-    schedule_poll(0)
-    {:noreply, state}
-  end
-
-  def handle_cast(:stop_search, state) do
-    {:noreply, %{state | polling: false}}
-  end
-
   def handle_cast(:resume_search, state) do
     state = %{state | tab_opened_at: nil, polling: true}
     schedule_poll(0)
