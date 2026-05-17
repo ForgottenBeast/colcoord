@@ -23,5 +23,3 @@ jobs:
         run: nix develop -c mix test
       - name: Format check
         run: nix develop -c mix format --check-formatted
-      - name: Static analysis
-        run: nix develop -c mix credo

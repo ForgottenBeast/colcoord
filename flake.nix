@@ -143,36 +143,11 @@
                 '';
                 dontInstall = true;
               };
-            apiDocs = beamPackages.mixRelease {
-              pname = "colcoord-docs";
-              version = "0.1.0";
-              src = ./.;
-              mixEnv = "dev";
-              mixNixDeps = import ./mix.nix { inherit lib beamPackages; };
-              buildPhase = ''
-                export MIX_HOME="$TMPDIR/.mix"
-                mix docs
-              '';
-              installPhase = ''
-                mkdir -p $out
-                cp -r doc/. $out/
-              '';
-            };
             mkDoc =
               {
                 includePlanning ? false,
               }:
-              let
-                guideDocs = mkGuideDocs { inherit includePlanning; };
-              in
-              if hasMixNix then
-                pkgs.runCommand "colcoord-doc" { } ''
-                  mkdir -p $out/guide $out/api
-                  cp -r ${guideDocs}/. $out/guide/
-                  cp -r ${apiDocs}/. $out/api/
-                ''
-              else
-                guideDocs;
+              mkGuideDocs { inherit includePlanning; };
           in
           {
             # Build the application as a release

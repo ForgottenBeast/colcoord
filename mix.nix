@@ -148,6 +148,10 @@ let
         sha256 = "cbeca3ce781f9ff07cfa9a87486f3ebd512a143ad6a14ed5c9fca21fe0bf3ae7";
       };
 
+      preConfigure = ''
+        export HOME="$TMPDIR"
+      '';
+
       beamDeps = [ cc_precompiler db_connection elixir_make ];
     };
 

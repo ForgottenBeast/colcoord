@@ -3,10 +3,34 @@ defmodule Colcoord.RoomFilterTest do
 
   alias Colcoord.RoomFilter
 
-  @room1 %{"id" => "abc", "mode" => 6, "players" => ["alice"], "maxPlayers" => 4}
-  @room2 %{"id" => "def", "mode" => 7, "players" => ["bob", "charlie"], "maxPlayers" => 4}
-  @room3 %{"id" => "ghi", "mode" => 8, "players" => ["dave"], "maxPlayers" => 2}
-  @full_room %{"id" => "full", "mode" => 6, "players" => ["a", "b", "c", "d"], "maxPlayers" => 4}
+  @room1 %{
+    "id" => "abc",
+    "mode" => 6,
+    "players" => [%{"username" => "alice", "icon" => 0, "isBot" => false}],
+    "maxPlayers" => 4
+  }
+  @room2 %{
+    "id" => "def",
+    "mode" => 7,
+    "players" => [
+      %{"username" => "bob", "icon" => 0, "isBot" => false},
+      %{"username" => "charlie", "icon" => 0, "isBot" => false}
+    ],
+    "maxPlayers" => 4
+  }
+  @room3 %{
+    "id" => "ghi",
+    "mode" => 8,
+    "players" => [%{"username" => "dave", "icon" => 0, "isBot" => false}],
+    "maxPlayers" => 2
+  }
+  @full_room %{
+    "id" => "full",
+    "mode" => 6,
+    "players" =>
+      for(n <- ["a", "b", "c", "d"], do: %{"username" => n, "icon" => 0, "isBot" => false}),
+    "maxPlayers" => 4
+  }
 
   describe "filter_and_sort/4" do
     test "filters by selected modes" do

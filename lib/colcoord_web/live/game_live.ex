@@ -36,7 +36,8 @@ defmodule ColcoordWeb.GameLive do
 
   @impl true
   def handle_info({:rooms_update, rooms}, socket) do
-    {:noreply, assign(socket, rooms: rooms, games_analyzed: socket.assigns.games_analyzed + length(rooms))}
+    {:noreply,
+     assign(socket, rooms: rooms, games_analyzed: socket.assigns.games_analyzed + length(rooms))}
   end
 
   def handle_info({:auto_join, room}, socket) do

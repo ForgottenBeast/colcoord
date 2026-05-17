@@ -30,16 +30,27 @@ defmodule Colcoord.GameFinderTest do
     test "broadcasts rooms_update on poll", %{pid: pid} do
       Phoenix.PubSub.subscribe(Colcoord.PubSub, "games")
 
-      :persistent_term.put({MockHttpClient, :rooms}, %{"rooms" => [
-        %{"id" => "r1", "mode" => 6, "players" => ["alice"], "maxPlayers" => 4}
-      ]})
+      :persistent_term.put({MockHttpClient, :rooms}, %{
+        "rooms" => [
+          %{
+            "id" => "r1",
+            "mode" => 6,
+            "players" => [%{"username" => "alice", "icon" => 0, "isBot" => false}],
+            "maxPlayers" => 4
+          }
+        ]
+      })
 
       settings = Settings.get_or_create()
-      settings |> Settings.changeset(%{selected_modes: Jason.encode!([6])}) |> Colcoord.Repo.update!()
-      send(pid, :settings_changed)
-      Process.sleep(50)
 
-      GenServer.cast(pid, {:start_search, :auto})
+      settings
+      |> Settings.changeset(%{selected_modes: Jason.encode!([6])})
+      |> Colcoord.Repo.update!()
+
+      send(pid, :settings_changed)
+
+      # Trigger a poll
+      send(pid, :poll)
 
       assert_receive {:rooms_update, rooms}, 1000
       assert length(rooms) == 1
@@ -49,11 +60,19 @@ defmodule Colcoord.GameFinderTest do
     test "broadcasts auto_join when match found and auto_join enabled", %{pid: pid} do
       Phoenix.PubSub.subscribe(Colcoord.PubSub, "games")
 
-      :persistent_term.put({MockHttpClient, :rooms}, %{"rooms" => [
-        %{"id" => "r1", "mode" => 6, "players" => ["alice"], "maxPlayers" => 4}
-      ]})
+      :persistent_term.put({MockHttpClient, :rooms}, %{
+        "rooms" => [
+          %{
+            "id" => "r1",
+            "mode" => 6,
+            "players" => [%{"username" => "alice", "icon" => 0, "isBot" => false}],
+            "maxPlayers" => 4
+          }
+        ]
+      })
 
       settings = Settings.get_or_create()
+
       settings
       |> Settings.changeset(%{selected_modes: Jason.encode!([6]), auto_join: true})
       |> Colcoord.Repo.update!()
@@ -61,18 +80,41 @@ defmodule Colcoord.GameFinderTest do
       send(pid, :settings_changed)
       Process.sleep(50)
 
-      GenServer.cast(pid, {:start_search, :auto})
+      send(pid, :poll)
 
       assert_receive {:auto_join, room}, 1000
       assert room["id"] == "r1"
     end
 
-    test "stops polling on stop_search", %{pid: pid} do
-      GenServer.cast(pid, {:start_search, :auto})
-      GenServer.cast(pid, :stop_search)
-
+    test "stops polling after auto_join match", %{pid: pid} do
       Phoenix.PubSub.subscribe(Colcoord.PubSub, "games")
-      refute_receive _, 200
+
+      :persistent_term.put({MockHttpClient, :rooms}, %{
+        "rooms" => [
+          %{
+            "id" => "r1",
+            "mode" => 6,
+            "players" => [%{"username" => "alice", "icon" => 0, "isBot" => false}],
+            "maxPlayers" => 4
+          }
+        ]
+      })
+
+      settings = Settings.get_or_create()
+
+      settings
+      |> Settings.changeset(%{selected_modes: Jason.encode!([6]), auto_join: true})
+      |> Colcoord.Repo.update!()
+
+      send(pid, :settings_changed)
+      Process.sleep(50)
+
+      send(pid, :poll)
+      assert_receive {:auto_join, _room}, 1000
+
+      # After auto_join, polling should be stopped
+      send(pid, :poll)
+      refute_receive {:auto_join, _}, 200
     end
   end
 
@@ -80,18 +122,50 @@ defmodule Colcoord.GameFinderTest do
     test "clears tab_opened_at and restarts polling", %{pid: pid} do
       Phoenix.PubSub.subscribe(Colcoord.PubSub, "games")
 
-      :persistent_term.put({MockHttpClient, :rooms}, %{"rooms" => [
-        %{"id" => "r2", "mode" => 6, "players" => [], "maxPlayers" => 4}
-      ]})
+      :persistent_term.put({MockHttpClient, :rooms}, %{
+        "rooms" => [
+          %{"id" => "r2", "mode" => 6, "players" => [], "maxPlayers" => 4}
+        ]
+      })
 
       settings = Settings.get_or_create()
-      settings |> Settings.changeset(%{selected_modes: Jason.encode!([6])}) |> Colcoord.Repo.update!()
+
+      settings
+      |> Settings.changeset(%{selected_modes: Jason.encode!([6])})
+      |> Colcoord.Repo.update!()
+
       send(pid, :settings_changed)
       Process.sleep(50)
 
       GenServer.cast(pid, :resume_search)
 
       assert_receive {:rooms_update, _rooms}, 1000
+    end
+  end
+
+  describe "get_rooms" do
+    test "returns last fetched rooms", %{pid: pid} do
+      :persistent_term.put({MockHttpClient, :rooms}, %{
+        "rooms" => [
+          %{"id" => "r1", "mode" => 6, "players" => [], "maxPlayers" => 4}
+        ]
+      })
+
+      settings = Settings.get_or_create()
+
+      settings
+      |> Settings.changeset(%{selected_modes: Jason.encode!([6])})
+      |> Colcoord.Repo.update!()
+
+      send(pid, :settings_changed)
+      Process.sleep(50)
+
+      send(pid, :poll)
+      Process.sleep(100)
+
+      rooms = GenServer.call(pid, :get_rooms)
+      assert length(rooms) == 1
+      assert hd(rooms)["id"] == "r1"
     end
   end
 end

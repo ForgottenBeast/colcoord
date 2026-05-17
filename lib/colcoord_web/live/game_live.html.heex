@@ -1,21 +1,21 @@
 <div id="game-opener" phx-hook="GameOpener" class="min-h-screen bg-base-300 p-4">
   <div class="max-w-4xl mx-auto space-y-4">
     <h1 class="text-2xl font-bold text-base-content">Colcoord</h1>
-
-    <!-- Error Banner -->
+    
+<!-- Error Banner -->
     <div :if={@error} class="alert alert-error">
       <span>{@error}</span>
     </div>
-
-    <!-- Fallback Link -->
+    
+<!-- Fallback Link -->
     <div :if={@show_fallback_link} class="alert alert-warning">
       <span>Popup blocked!</span>
       <a href={@fallback_url} target="_blank" class="btn btn-sm btn-primary">
         Open Game Manually
       </a>
     </div>
-
-    <!-- Auto-Join Toggle -->
+    
+<!-- Auto-Join Toggle -->
     <div class="card bg-base-100 shadow-md">
       <div class="card-body flex-row items-center justify-between py-3">
         <span class="font-semibold text-base-content">Auto-Join</span>
@@ -27,11 +27,13 @@
         />
       </div>
     </div>
-
-    <!-- Mode Selector -->
+    
+<!-- Mode Selector -->
     <div class="card bg-base-100 shadow-md">
       <div class="card-body py-3">
-        <h2 class="card-title text-sm uppercase tracking-wide text-base-content/70">Game Modes</h2>
+        <h2 class="card-title text-sm uppercase tracking-wide text-base-content/70">
+          Game Modes
+        </h2>
         <div class="grid grid-cols-2 gap-2 mt-2">
           <%= for {code, label} <- @mode_map do %>
             <label class="flex items-center gap-2 cursor-pointer">
@@ -48,8 +50,8 @@
         </div>
       </div>
     </div>
-
-    <!-- Friends List -->
+    
+<!-- Friends List -->
     <div class="card bg-base-100 shadow-md">
       <div class="card-body py-3">
         <h2 class="card-title text-sm uppercase tracking-wide text-base-content/70">Friends</h2>
@@ -80,13 +82,12 @@
         </form>
       </div>
     </div>
-
-    <!-- Game List -->
+    
+<!-- Game List -->
     <div class="card bg-base-100 shadow-md">
       <div class="card-body py-3">
         <h2 class="card-title text-sm uppercase tracking-wide text-base-content/70">
-          Available Games
-          <span class="badge badge-ghost badge-sm">{length(@rooms)}</span>
+          Available Games <span class="badge badge-ghost badge-sm">{length(@rooms)}</span>
         </h2>
         <div :if={@rooms == []} class="text-base-content/50 text-sm mt-2">
           No matching games found. Searching...
@@ -105,11 +106,15 @@
             <tbody>
               <%= for room <- @rooms do %>
                 <tr class="hover">
-                  <td class="text-sm">{Map.get(@mode_map, room["mode"], "Mode #{room["mode"]}")}</td>
+                  <td class="text-sm">
+                    {Map.get(@mode_map, room["mode"], "Mode #{room["mode"]}")}
+                  </td>
                   <td class="text-sm">
                     {length(room["players"] || [])}/{room["maxPlayers"]}
                   </td>
-                  <td class="text-sm">{(List.first(room["players"] || []) || %{})["username"] || "—"}</td>
+                  <td class="text-sm">
+                    {(List.first(room["players"] || []) || %{})["username"] || "—"}
+                  </td>
                   <td>
                     <%= for p <- (room["players"] || []), p["username"] in @friends do %>
                       <span class="badge badge-accent badge-sm">{p["username"]}</span>
@@ -131,8 +136,8 @@
         </div>
       </div>
     </div>
-
-    <!-- Status Bar -->
+    
+<!-- Status Bar -->
     <div class="text-xs text-base-content/50 flex justify-between">
       <span>Games analyzed: {@games_analyzed}</span>
       <span :if={@auto_join} class="badge badge-success badge-xs gap-1">
