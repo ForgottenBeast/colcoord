@@ -4,7 +4,7 @@ defmodule Colcoord.GameFinder do
 
   alias Colcoord.{HttpClient, RoomFilter, Settings}
 
-  @poll_interval 3_000
+  @poll_interval 1_000
   @pubsub Colcoord.PubSub
   @topic "games"
 
@@ -66,7 +66,7 @@ defmodule Colcoord.GameFinder do
 
   def handle_cast(:settings_changed, state) do
     settings = Settings.get_or_create()
-    schedule_poll(500)
+    schedule_poll(0)
     {:noreply, %{state | settings: settings}}
   end
 
