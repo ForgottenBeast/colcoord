@@ -19,7 +19,7 @@ async function getPreferredModes() {
 }
 
 async function fetchRooms() {
-  const res = await fetch("https://colonist.io/api/room-list.json");
+  const res = await fetch("https://colonist.io/data/rooms.json");
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   return await res.json(); // array of { id, mode, players, ... }
 }
@@ -142,4 +142,3 @@ browser.runtime.onMessage.addListener((msg, sender) => {
     analyzedCount = 0
   }
 });
-

@@ -1,14 +1,16 @@
 defmodule Colcoord.HttpClient do
   @moduledoc false
 
-  @url "https://colonist.io/api/room-list.json"
+  @url "https://colonist.io/data/rooms.json"
   @timeout 5_000
   @max_backoff 16_000
 
   @user_agent "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36"
 
+  def rooms_url, do: @url
+
   def fetch_rooms(opts \\ []) do
-    url = Keyword.get(opts, :url, @url)
+    url = Keyword.get(opts, :url, rooms_url())
 
     case Req.get(url,
            headers: [{"user-agent", @user_agent}],
