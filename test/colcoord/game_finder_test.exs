@@ -154,4 +154,48 @@ defmodule Colcoord.GameFinderTest do
       assert hd(rooms)["id"] == "r1"
     end
   end
+
+  describe "upstream health" do
+    import ExUnit.CaptureLog
+
+    defmodule FlakyClient do
+      def fetch_rooms do
+        case :persistent_term.get({__MODULE__, :mode}, :ok) do
+          :ok -> {:ok, %{"rooms" => []}}
+          :error -> {:error, :nxdomain}
+        end
+      end
+    end
+
+    setup do
+      on_exit(fn -> :persistent_term.erase({FlakyClient, :mode}) end)
+    end
+
+    test "records success and failure, logging once per transition" do
+      Logger.configure(level: :info)
+      on_exit(fn -> Logger.configure(level: :warning) end)
+
+      log =
+        capture_log([level: :info], fn ->
+          {:ok, pid} = GenServer.start_link(GameFinder, [http_client: FlakyClient], [])
+          :sys.get_state(pid)
+          assert %{status: :fresh, consecutive_failures: 0} = GameFinder.upstream_status(pid)
+
+          :persistent_term.put({FlakyClient, :mode}, :error)
+          send(pid, :poll)
+          send(pid, :poll)
+          :sys.get_state(pid)
+          assert %{consecutive_failures: 2} = GameFinder.upstream_status(pid)
+
+          :persistent_term.put({FlakyClient, :mode}, :ok)
+          send(pid, :poll)
+          :sys.get_state(pid)
+          assert %{status: :fresh, consecutive_failures: 0} = GameFinder.upstream_status(pid)
+        end)
+
+      assert length(Regex.scan(~r/rooms fetch failing/, log)) == 1
+      assert log =~ "nxdomain"
+      assert length(Regex.scan(~r/rooms fetch recovered/, log)) == 1
+    end
+  end
 end
