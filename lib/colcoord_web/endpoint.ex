@@ -36,6 +36,9 @@ defmodule ColcoordWeb.Endpoint do
     plug Phoenix.Ecto.CheckRepoStatus, otp_app: :colcoord
   end
 
+  # Probe endpoints: before request logging, parsers, session and router.
+  plug ColcoordWeb.Plugs.Health
+
   plug Plug.RequestId
   plug Plug.Telemetry, event_prefix: [:phoenix, :endpoint]
 

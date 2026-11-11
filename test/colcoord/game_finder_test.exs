@@ -61,7 +61,8 @@ defmodule Colcoord.GameFinderTest do
 
       send(pid, :poll)
 
-      assert_receive {:rooms_update, rooms}, 1000
+      # skip the empty update from the immediate poll scheduled in init/1
+      assert_receive {:rooms_update, [_ | _] = rooms}, 1000
       assert length(rooms) == 1
       assert hd(rooms)["id"] == "r1"
     end
@@ -171,6 +172,15 @@ defmodule Colcoord.GameFinderTest do
       on_exit(fn -> :persistent_term.erase({FlakyClient, :mode}) end)
     end
 
+    # init schedules an immediate poll; wait for it rather than racing it
+    defp await(fun, tries \\ 100) do
+      cond do
+        fun.() -> :ok
+        tries == 0 -> flunk("condition not reached")
+        true -> Process.sleep(10) && await(fun, tries - 1)
+      end
+    end
+
     test "records success and failure, logging once per transition" do
       Logger.configure(level: :info)
       on_exit(fn -> Logger.configure(level: :warning) end)
@@ -178,19 +188,20 @@ defmodule Colcoord.GameFinderTest do
       log =
         capture_log([level: :info], fn ->
           {:ok, pid} = GenServer.start_link(GameFinder, [http_client: FlakyClient], [])
-          :sys.get_state(pid)
-          assert %{status: :fresh, consecutive_failures: 0} = GameFinder.upstream_status(pid)
+          await(fn -> GameFinder.upstream_status().status == :fresh end)
+          assert %{consecutive_failures: 0} = GameFinder.upstream_status()
 
           :persistent_term.put({FlakyClient, :mode}, :error)
           send(pid, :poll)
           send(pid, :poll)
           :sys.get_state(pid)
-          assert %{consecutive_failures: 2} = GameFinder.upstream_status(pid)
+          await(fn -> GameFinder.upstream_status().consecutive_failures >= 2 end)
 
           :persistent_term.put({FlakyClient, :mode}, :ok)
           send(pid, :poll)
           :sys.get_state(pid)
-          assert %{status: :fresh, consecutive_failures: 0} = GameFinder.upstream_status(pid)
+          await(fn -> GameFinder.upstream_status().consecutive_failures == 0 end)
+          assert %{status: :fresh, consecutive_failures: 0} = GameFinder.upstream_status()
         end)
 
       assert length(Regex.scan(~r/rooms fetch failing/, log)) == 1

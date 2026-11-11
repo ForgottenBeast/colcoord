@@ -13,13 +13,31 @@ defmodule ColcoordWeb.Plugs.HealthTest do
 
   defp start_finder(client) do
     start_supervised!({GameFinder, http_client: client})
-    :sys.get_state(GameFinder)
+
+    await(fn ->
+      GameFinder.upstream_status() != %{
+        status: :never,
+        seconds_since_success: nil,
+        consecutive_failures: 0
+      }
+    end)
+  end
+
+  # GameFinder polls immediately from init; wait for that first poll to land
+  defp await(fun, tries \\ 100) do
+    cond do
+      fun.() -> :ok
+      tries == 0 -> flunk("condition not reached")
+      true -> Process.sleep(10) && await(fun, tries - 1)
+    end
   end
 
   describe "GET /healthz" do
     test "503 when GameFinder is not running", %{conn: conn} do
       conn = get(conn, "/healthz")
-      assert %{"status" => "error", "checks" => %{"game_finder" => "down"}} = json_response(conn, 503)
+
+      assert %{"status" => "error", "checks" => %{"game_finder" => "down"}} =
+               json_response(conn, 503)
     end
 
     test "200 JSON when GameFinder is alive, even if upstream is failing", %{conn: conn} do
@@ -42,7 +60,9 @@ defmodule ColcoordWeb.Plugs.HealthTest do
   describe "GET /readyz" do
     test "503 when GameFinder is not running", %{conn: conn} do
       conn = get(conn, "/readyz")
-      assert %{"status" => "error", "checks" => %{"game_finder" => "down"}} = json_response(conn, 503)
+
+      assert %{"status" => "error", "checks" => %{"game_finder" => "down"}} =
+               json_response(conn, 503)
     end
 
     test "200 with fresh upstream", %{conn: conn} do

@@ -17,7 +17,10 @@ defmodule Colcoord.GameFinder.UpstreamTest do
       {s, nil} = Upstream.record(Upstream.new(), :ok, 1_000)
       assert %{status: :fresh, seconds_since_success: 0} = Upstream.snapshot(s, 1_000)
       assert %{status: :fresh} = Upstream.snapshot(s, 1_000 + @stale_after_ms)
-      assert %{status: :stale, seconds_since_success: secs} = Upstream.snapshot(s, 1_001 + @stale_after_ms)
+
+      assert %{status: :stale, seconds_since_success: secs} =
+               Upstream.snapshot(s, 1_001 + @stale_after_ms)
+
       assert secs == div(@stale_after_ms, 1000)
     end
 
@@ -30,7 +33,9 @@ defmodule Colcoord.GameFinder.UpstreamTest do
       assert %{consecutive_failures: 4, status: :never} = Upstream.snapshot(s, @warn_interval_ms)
       {s, :recovered} = Upstream.record(s, :ok, @warn_interval_ms + 1)
       {s, nil} = Upstream.record(s, :ok, @warn_interval_ms + 2)
-      assert %{consecutive_failures: 0, status: :fresh} = Upstream.snapshot(s, @warn_interval_ms + 2)
+
+      assert %{consecutive_failures: 0, status: :fresh} =
+               Upstream.snapshot(s, @warn_interval_ms + 2)
     end
 
     test "failure after a success warns immediately" do
@@ -59,7 +64,7 @@ defmodule Colcoord.GameFinder.UpstreamTest do
     end
 
     property "consecutive_failures equals the trailing run of errors" do
-      check all evs <- events() do
+      check all(evs <- events()) do
         {final, _} = run(evs)
 
         trailing =
@@ -71,7 +76,7 @@ defmodule Colcoord.GameFinder.UpstreamTest do
     end
 
     property "classification matches time since last success" do
-      check all evs <- events(), extra <- integer(0..200_000) do
+      check all(evs <- events(), extra <- integer(0..200_000)) do
         {final, trace} = run(evs)
         now = (trace |> List.last({nil, 0, nil, nil}) |> elem(1)) + extra
         now = max(now, trace |> Enum.map(&elem(&1, 1)) |> Enum.max(fn -> 0 end))
@@ -93,15 +98,22 @@ defmodule Colcoord.GameFinder.UpstreamTest do
     end
 
     property "warn rate limit and recovery invariants" do
-      check all evs <- events() do
+      check all(evs <- events()) do
         {_final, trace} = run(evs)
 
         # walk the trace tracking previous state
-        Enum.reduce(trace, {:ok_or_start, nil, nil}, fn {kind, t, action, _s}, {prev, last_warn, _} ->
+        Enum.reduce(trace, {:ok_or_start, nil, nil}, fn {kind, t, action, _s},
+                                                        {prev, last_warn, _} ->
           case {kind, prev} do
-            {:ok, :failing} -> assert action == :recovered
-            {:ok, _} -> assert action == nil
-            {:error, p} when p != :failing -> assert action == :warn
+            {:ok, :failing} ->
+              assert action == :recovered
+
+            {:ok, _} ->
+              assert action == nil
+
+            {:error, p} when p != :failing ->
+              assert action == :warn
+
             {:error, :failing} ->
               if t - last_warn >= @warn_interval_ms,
                 do: assert(action == :warn),
@@ -115,7 +127,7 @@ defmodule Colcoord.GameFinder.UpstreamTest do
     end
 
     property "warnings during a failure streak are at least one interval apart" do
-      check all evs <- events() do
+      check all(evs <- events()) do
         {_final, trace} = run(evs)
 
         trace
@@ -123,7 +135,10 @@ defmodule Colcoord.GameFinder.UpstreamTest do
         |> Enum.filter(fn [{k, _, _, _} | _] -> k == :error end)
         |> Enum.each(fn streak ->
           times = for {_, t, :warn, _} <- streak, do: t
-          times |> Enum.chunk_every(2, 1, :discard) |> Enum.each(fn [a, b] -> assert b - a >= @warn_interval_ms end)
+
+          times
+          |> Enum.chunk_every(2, 1, :discard)
+          |> Enum.each(fn [a, b] -> assert b - a >= @warn_interval_ms end)
         end)
       end
     end

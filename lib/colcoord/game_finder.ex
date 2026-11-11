@@ -1,7 +1,9 @@
 defmodule Colcoord.GameFinder do
   @moduledoc false
   use GenServer
+  require Logger
 
+  alias Colcoord.GameFinder.Upstream
   alias Colcoord.{HttpClient, RoomFilter, Settings}
 
   @poll_interval 1_000
@@ -30,6 +32,30 @@ defmodule Colcoord.GameFinder do
     GenServer.call(__MODULE__, :get_rooms)
   end
 
+  def alive? do
+    case Process.whereis(__MODULE__) do
+      nil -> false
+      pid -> Process.alive?(pid)
+    end
+  end
+
+  @doc """
+  Upstream fetch health snapshot (`:status`, `:seconds_since_success`,
+  `:consecutive_failures`), or nil if no GameFinder has published one. Reads
+  lock-free `:atomics` so it never blocks behind a slow (up to 5s) fetch.
+  """
+  def upstream_status do
+    case :persistent_term.get({__MODULE__, :upstream}, nil) do
+      nil ->
+        nil
+
+      ref ->
+        last_success = if :atomics.get(ref, 1) == 1, do: :atomics.get(ref, 2)
+        upstream = %Upstream{last_success: last_success, failures: :atomics.get(ref, 3)}
+        Upstream.snapshot(upstream, now())
+    end
+  end
+
   # Server callbacks
 
   @impl true
@@ -43,8 +69,12 @@ defmodule Colcoord.GameFinder do
       polling: true,
       http_client: http_client,
       error_count: 0,
-      last_rooms: []
+      last_rooms: [],
+      upstream: Upstream.new()
     }
+
+    :persistent_term.put({__MODULE__, :upstream}, :atomics.new(3, signed: true))
+    publish_upstream(state)
 
     # Start polling immediately so rooms are displayed as soon as someone connects
     schedule_poll(0)
@@ -78,9 +108,11 @@ defmodule Colcoord.GameFinder do
   def handle_info(:poll, state) do
     case state.http_client.fetch_rooms() do
       {:ok, body} ->
+        state = track(state, :ok, nil)
         handle_rooms(body, %{state | error_count: 0})
 
-      {:error, _reason} ->
+      {:error, reason} ->
+        state = track(state, :error, reason)
         error_count = state.error_count + 1
         backoff = HttpClient.backoff_ms(error_count)
         schedule_poll(backoff)
@@ -97,6 +129,37 @@ defmodule Colcoord.GameFinder do
   end
 
   # Private
+
+  defp now, do: System.monotonic_time(:millisecond)
+
+  defp track(state, outcome, reason) do
+    {upstream, action} = Upstream.record(state.upstream, outcome, now())
+    state = %{state | upstream: upstream}
+    publish_upstream(state)
+
+    case action do
+      :warn ->
+        Logger.warning(
+          "rooms fetch failing (#{upstream.failures} consecutive): #{inspect(reason)}"
+        )
+
+      :recovered ->
+        Logger.info("rooms fetch recovered")
+
+      nil ->
+        :ok
+    end
+
+    state
+  end
+
+  defp publish_upstream(state) do
+    ref = :persistent_term.get({__MODULE__, :upstream})
+    %Upstream{last_success: ts, failures: failures} = state.upstream
+    :atomics.put(ref, 2, ts || 0)
+    :atomics.put(ref, 3, failures)
+    :atomics.put(ref, 1, if(ts, do: 1, else: 0))
+  end
 
   defp handle_rooms(body, state) do
     settings = state.settings
