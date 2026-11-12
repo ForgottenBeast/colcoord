@@ -28,3 +28,6 @@ npm-debug.log
 .omc/logs/
 .omc/handoffs/
 .omc/project-memory.json
+
+# Local dev services (Dex config with client secrets); never commit.
+.dev/
